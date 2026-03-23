@@ -249,6 +249,7 @@ class Stripe_Calendar_Booking_Cards
         $base_url = admin_url('edit.php?post_type=scbc_slot&page=scbc-calendar-view');
         $prev_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('-1 month', $month_ts)), $base_url);
         $next_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('+1 month', $month_ts)), $base_url);
+        $density = $this->get_admin_calendar_density();
         $slots = $this->get_slots_for_month($month, true);
         $slots_by_day = $this->group_slots_by_day($slots);
 
@@ -271,7 +272,9 @@ class Stripe_Calendar_Booking_Cards
         echo '<p><a class="button" href="' . esc_url($prev_url) . '">Previous Month</a> ';
         echo '<a class="button" href="' . esc_url($next_url) . '">Next Month</a> ';
         echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries')) . '">Booking Entries</a> ';
-        echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-export-bookings')) . '">Export Bookings</a></p>';
+        echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-export-bookings')) . '">Export Bookings</a> ';
+        echo '<a class="button' . ($density === 'compact' ? ' button-primary' : '') . '" href="' . esc_url(add_query_arg(array('scbc_density' => 'compact'), $base_url)) . '">Compact</a> ';
+        echo '<a class="button' . ($density === 'detailed' ? ' button-primary' : '') . '" href="' . esc_url(add_query_arg(array('scbc_density' => 'detailed'), $base_url)) . '">Detailed</a></p>';
         echo '<h2>' . esc_html(wp_date('F Y', $month_ts)) . '</h2>';
         echo '<div class="scbc-admin-metrics">';
         echo '<div class="scbc-admin-metric"><strong>Total Slots</strong><span>' . esc_html((string) $total_slots) . '</span></div>';
@@ -279,7 +282,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-admin-metric"><strong>Full Slots</strong><span>' . esc_html((string) $full_slots) . '</span></div>';
         echo '<div class="scbc-admin-metric"><strong>Booked Spots</strong><span>' . esc_html((string) $booked_spots . '/' . (string) $total_spots) . '</span></div>';
         echo '</div>';
-        $this->render_calendar_table($month, $slots_by_day, true);
+        $this->render_calendar_table($month, $slots_by_day, true, $density);
         echo '</div>';
     }
 
@@ -637,7 +640,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<a class="scbc-nav-btn" href="' . esc_url($next_url) . '">Next Month</a>';
         echo '</div>';
 
-        $this->render_calendar_table($month, $this->group_slots_by_day($this->get_slots_for_month($month, false)), false);
+        $this->render_calendar_table($month, $this->group_slots_by_day($this->get_slots_for_month($month, false)), false, 'detailed');
         return ob_get_clean();
     }
 
@@ -750,13 +753,14 @@ class Stripe_Calendar_Booking_Cards
         return $grouped;
     }
 
-    private function render_calendar_table($month, $slots_by_day, $admin_view)
+    private function render_calendar_table($month, $slots_by_day, $admin_view, $density = 'detailed')
     {
         $month_start = strtotime($month . '-01 00:00:00');
         $days_in_month = (int) gmdate('t', $month_start);
         $weekday_of_first = (int) gmdate('w', $month_start);
         $currency = strtoupper($this->get_settings()['currency']);
-        $table_class = $admin_view ? 'scbc-calendar-table scbc-admin-table' : 'scbc-calendar-table';
+        $density_class = $density === 'compact' ? 'scbc-density-compact' : 'scbc-density-detailed';
+        $table_class = $admin_view ? 'scbc-calendar-table scbc-admin-table ' . $density_class : 'scbc-calendar-table';
         echo '<table class="' . esc_attr($table_class) . '"><thead><tr>';
         foreach (array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat') as $name) {
             echo '<th>' . esc_html($name) . '</th>';
@@ -783,13 +787,15 @@ class Stripe_Calendar_Booking_Cards
                 foreach ($day_slots as $slot) {
                     $gmt = $this->get_gmt_offset_label($slot['timezone'], (int) $slot['timestamp']);
                     $duration = $this->get_slot_duration_minutes((int) $slot['id']);
-                    echo '<div class="scbc-slot-item">';
+                    $tier = $this->get_price_tier((float) $slot['price']);
+                    echo '<div class="scbc-slot-item scbc-price-tier-' . esc_attr($tier['key']) . '">';
                     if ($admin_view) {
                         $edit_url = get_edit_post_link((int) $slot['id'], '');
                         echo '<div class="scbc-slot-title"><a href="' . esc_url((string) $edit_url) . '">' . esc_html($slot['title']) . '</a></div>';
                     } else {
                         echo '<div class="scbc-slot-title">' . esc_html($slot['title']) . '</div>';
                     }
+                    echo '<div class="scbc-tier-badge">' . esc_html($tier['label']) . '</div>';
                     echo '<div class="scbc-slot-time">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format'))) . ' ' . esc_html($slot['timezone']) . ' ' . esc_html($gmt) . '</div>';
                     echo '<div class="scbc-slot-meta">Duration: ' . esc_html((string) $duration) . ' min</div>';
                     echo '<div class="scbc-slot-price">' . esc_html($currency . ' ' . number_format_i18n($slot['price'], 2)) . '</div>';
@@ -1390,6 +1396,43 @@ class Stripe_Calendar_Booking_Cards
         }
 
         return array('from' => '', 'to' => '');
+    }
+
+    private function get_admin_calendar_density()
+    {
+        $user_id = get_current_user_id();
+        $density = '';
+        if (isset($_GET['scbc_density'])) {
+            $requested = sanitize_text_field(wp_unslash($_GET['scbc_density']));
+            if ($requested === 'compact' || $requested === 'detailed') {
+                $density = $requested;
+                if ($user_id > 0) {
+                    update_user_meta($user_id, 'scbc_calendar_density', $density);
+                }
+            }
+        }
+        if ($density === '' && $user_id > 0) {
+            $stored = get_user_meta($user_id, 'scbc_calendar_density', true);
+            if ($stored === 'compact' || $stored === 'detailed') {
+                $density = $stored;
+            }
+        }
+        if ($density === '') {
+            $density = 'detailed';
+        }
+        return $density;
+    }
+
+    private function get_price_tier($price)
+    {
+        $amount = (float) $price;
+        if ($amount <= 300) {
+            return array('key' => 'standard', 'label' => 'Standard');
+        }
+        if ($amount <= 700) {
+            return array('key' => 'premium', 'label' => 'Premium');
+        }
+        return array('key' => 'elite', 'label' => 'Elite');
     }
 
     private function sanitize_timezone($timezone)

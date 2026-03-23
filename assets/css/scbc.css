@@ -86,6 +86,17 @@
     margin-bottom: 4px;
 }
 
+.scbc-tier-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-bottom: 4px;
+}
+
 .scbc-slot-time,
 .scbc-slot-price {
     font-size: 12px;
@@ -225,4 +236,59 @@
 
 .scbc-admin-table .scbc-slot-title a {
     text-decoration: none;
+}
+
+.scbc-price-tier-standard {
+    border-left: 4px solid #22c55e;
+}
+
+.scbc-price-tier-standard .scbc-tier-badge {
+    background: #ecfdf3;
+    color: #166534;
+}
+
+.scbc-price-tier-premium {
+    border-left: 4px solid #f59e0b;
+}
+
+.scbc-price-tier-premium .scbc-tier-badge {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.scbc-price-tier-elite {
+    border-left: 4px solid #ef4444;
+}
+
+.scbc-price-tier-elite .scbc-tier-badge {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.scbc-density-compact .scbc-day-cell {
+    min-height: 130px;
+    height: auto;
+    padding: 5px;
+}
+
+.scbc-density-compact .scbc-slot-item {
+    padding: 6px;
+    margin-bottom: 5px;
+}
+
+.scbc-density-compact .scbc-slot-time,
+.scbc-density-compact .scbc-slot-meta,
+.scbc-density-compact .scbc-slot-price,
+.scbc-density-compact .scbc-slot-spots {
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.scbc-density-compact .scbc-slot-title {
+    font-size: 12px;
+}
+
+.scbc-density-compact .scbc-admin-status {
+    font-size: 10px;
+    padding: 2px 6px;
 }
