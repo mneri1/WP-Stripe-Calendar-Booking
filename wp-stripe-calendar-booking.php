@@ -18,6 +18,7 @@ class Stripe_Calendar_Booking_Cards
     const NONCE_ACTION = 'scbc_checkout_nonce';
     const PROGRAM_SESSIONS = 6;
     const DB_VERSION = '1.1.0';
+    const DOC_URL = 'https://github.com/mneri1/WP-Stripe-Calendar-Booking/blob/main/HOW_TO_USE.md';
 
     public function __construct()
     {
@@ -38,6 +39,8 @@ class Stripe_Calendar_Booking_Cards
         add_action('rest_api_init', array($this, 'register_webhook_route'));
         add_action('init', array($this, 'ensure_reminder_cron'));
         add_action('scbc_hourly_reminder_event', array($this, 'process_scheduled_reminders'));
+        add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
+        add_filter('plugin_row_meta', array($this, 'plugin_row_meta'), 10, 2);
     }
 
     public function register_post_type()
@@ -124,9 +127,28 @@ class Stripe_Calendar_Booking_Cards
     public function add_settings_page()
     {
         add_options_page('Stripe Booking Settings', 'Stripe Booking', 'manage_options', 'scbc-settings', array($this, 'render_settings_page'));
+        add_submenu_page('edit.php?post_type=scbc_slot', 'Settings', 'Settings', 'manage_options', 'scbc-settings', array($this, 'render_settings_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Calendar View', 'Calendar View', 'edit_posts', 'scbc-calendar-view', array($this, 'render_admin_calendar_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Booking Entries', 'Booking Entries', 'edit_posts', 'scbc-booking-entries', array($this, 'render_entries_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Export Bookings', 'Export Bookings', 'edit_posts', 'scbc-export-bookings', array($this, 'render_export_page'));
+    }
+
+    public function plugin_action_links($links)
+    {
+        $settings_link = '<a href="' . esc_url(admin_url('options-general.php?page=scbc-settings')) . '">Settings</a>';
+        $docs_link = '<a href="' . esc_url(self::DOC_URL) . '" target="_blank" rel="noopener noreferrer">Documentation</a>';
+        array_unshift($links, $docs_link);
+        array_unshift($links, $settings_link);
+        return $links;
+    }
+
+    public function plugin_row_meta($links, $file)
+    {
+        if ($file !== plugin_basename(__FILE__)) {
+            return $links;
+        }
+        $links[] = '<a href="' . esc_url(self::DOC_URL) . '" target="_blank" rel="noopener noreferrer">Documentation</a>';
+        return $links;
     }
 
     public function register_settings()
