@@ -1,0 +1,162 @@
+.scbc-calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.scbc-month-label {
+    margin: 0;
+}
+
+.scbc-nav-btn {
+    text-decoration: none;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 7px 12px;
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.scbc-calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.scbc-calendar-table th,
+.scbc-calendar-table td {
+    border: 1px solid #dbe3ee;
+    vertical-align: top;
+}
+
+.scbc-calendar-table th {
+    background: #f8fafc;
+    padding: 8px;
+    text-align: center;
+}
+
+.scbc-day-cell {
+    min-height: 160px;
+    height: 170px;
+    padding: 6px;
+}
+
+.scbc-empty {
+    background: #f8fafc;
+}
+
+.scbc-day-number {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.scbc-slot-item {
+    border: 1px solid #d2d8df;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: #fff;
+}
+
+.scbc-slot-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.scbc-slot-time,
+.scbc-slot-price {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.scbc-slot-spots {
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #334155;
+}
+
+.scbc-program-banner {
+    background: #e0f2fe;
+    border: 1px solid #7dd3fc;
+    color: #0c4a6e;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+}
+
+.scbc-email-wrap {
+    margin: 10px 0 14px;
+}
+
+.scbc-email-input {
+    width: 100%;
+    max-width: 360px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.scbc-portal-list {
+    margin: 12px 0 0;
+    padding-left: 18px;
+}
+
+.scbc-book-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #0ea5e9;
+    color: #ffffff;
+    cursor: pointer;
+    width: 100%;
+}
+
+.scbc-book-btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.scbc-notice {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin: 10px 0 18px;
+}
+
+.scbc-success {
+    background: #ecfdf3;
+    color: #065f46;
+    border: 1px solid #34d399;
+}
+
+.scbc-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.scbc-ics-link {
+    margin-left: 8px;
+    font-weight: 600;
+}
+
+.scbc-admin-status {
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 3px 7px;
+    display: inline-block;
+}
+
+.scbc-admin-status.is-open {
+    background: #ecfdf3;
+    color: #065f46;
+}
+
+.scbc-admin-status.is-booked {
+    background: #fef2f2;
+    color: #991b1b;
+}
