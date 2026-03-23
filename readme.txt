@@ -35,6 +35,13 @@ https://vibeconnectionlounge.com
 Support:
 naturalmysticfrequencies@gmail.com
 
+Documentation files in plugin package:
+- README.md
+- HOW_TO_USE.md
+- DEPLOY_CHECKLIST.md
+- ADMIN_CHEAT_SHEET.md
+- RELEASE_NOTES.md
+
 == Installation ==
 
 1. Upload plugin folder to `/wp-content/plugins/`.
@@ -114,4 +121,3 @@ Yes. It has an Activity Logs page with filters, search, and daily counters.
 
 = 1.0.0 =
 - Initial release
-

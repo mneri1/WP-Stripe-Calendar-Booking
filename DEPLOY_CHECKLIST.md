@@ -1,5 +1,13 @@
 # Deploy Checklist
 
+## Documentation Navigation
+1. [README.md](README.md)
+2. [HOW_TO_USE.md](HOW_TO_USE.md)
+3. [DEPLOY_CHECKLIST.md](DEPLOY_CHECKLIST.md)
+4. [ADMIN_CHEAT_SHEET.md](ADMIN_CHEAT_SHEET.md)
+5. [RELEASE_NOTES.md](RELEASE_NOTES.md)
+6. [readme.txt](readme.txt)
+
 Use this checklist every time before pushing live.
 
 ## Pre Deploy
@@ -41,4 +49,3 @@ Today Error
 3. Push to GitHub `main`.
 4. Upload zip to WordPress site.
 5. Run one final live booking check.
-
