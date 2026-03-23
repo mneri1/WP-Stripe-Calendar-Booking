@@ -4,18 +4,20 @@ Tags: booking, stripe, calendar, mentorship, appointments
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-6 Week Mentorship booking plugin with Stripe checkout, calendar slots, reminders, client portal, and iCal downloads.
+6 Week Mentorship booking plugin with Stripe checkout, card based slot display, reminders, client portal, iCal downloads, and activity logs.
 
 == Description ==
 
-Stripe Calendar Booking Cards is tailored for a 6 Week Mentorship flow.
+Stripe Calendar Booking Cards is tailored for a fixed 6 session mentorship flow.
 
-Features:
-- Monthly booking calendar shortcode
+Main features:
+- Frontend booking cards grouped by month
+- Month filter, numbered pagination, and load more controls
+- Booking detail modal before Stripe checkout
 - Stripe checkout with webhook verification
 - 6 session cap per client email
 - Client portal shortcode with session usage and iCal links
@@ -23,6 +25,9 @@ Features:
 - CSV exports for summary and row level entries
 - 24 hour reminder emails with editable templates
 - Timezone aware iCal with VTIMEZONE blocks
+- Activity logs page with severity filters and search
+- Daily counters for total info warning and error logs
+- Automatic log retention purge after 90 days
 
 Website:
 https://vibeconnectionlounge.com
@@ -48,10 +53,46 @@ Yes. It enforces a 6 session cap per client email.
 = Does it support iCal for Apple and Google calendars? =
 Yes. It generates timezone aware iCal with VTIMEZONE blocks.
 
-= Can reminders be customized? =
-Yes. Subject and body are configurable in settings and support tokens.
+= Can reminder and policy text be customized? =
+Yes. Reminder templates and frontend modal policy text are editable in settings.
+
+= Does it include logs for troubleshooting? =
+Yes. It has an Activity Logs page with filters, search, and daily counters.
 
 == Changelog ==
+
+= 1.7.1 =
+- Added Total Logs Today counter in Activity Logs page
+- Added Today Info counter in Activity Logs page
+- Added Today Warning counter in Activity Logs page
+- Added Today Error counter in Activity Logs page
+- Added 90 day automatic log retention purge
+- Updated documentation with full beginner step by step guide
+
+= 1.7.0 =
+- Added full activity logging system and admin logs page
+- Added logging for checkout webhook booking reminders exports and iCal
+- Added log filtering search pagination and clear logs action
+- Added settings toast with save time and timezone and dismiss button
+- Added settings modal policy preview using next real upcoming slot
+
+= 1.6.1 =
+- Added mobile style modal preview card in settings
+- Added dismiss button to settings save toast
+
+= 1.6.0 =
+- Added settings modal policy preview section
+- Added subtle fade animation for card renders
+
+= 1.5.0 =
+- Added skeleton loading for frontend slot loading
+- Added automatic first available month selection
+- Added editable modal policy text in settings
+
+= 1.4.0 =
+- Replaced frontend month grid with month grouped card list
+- Added scrollable time picker in slot creation
+- Added responsive card layout with 4 columns on desktop
 
 = 1.3.0 =
 - Added 6 session enforcement per email
@@ -73,3 +114,4 @@ Yes. Subject and body are configurable in settings and support tokens.
 
 = 1.0.0 =
 - Initial release
+

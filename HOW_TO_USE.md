@@ -20,6 +20,17 @@ This plugin helps you sell and manage a 6 session mentorship program.
 4. Booking is saved, emails are sent, and calendar download is available.
 5. Admin can track everything with entries, exports, and activity logs.
 
+## Quick Start Checklist
+Use this super fast checklist first.
+
+1. Install and activate plugin.
+2. Open Settings then Stripe Booking.
+3. Add Stripe Publishable Key, Secret Key, and Webhook Secret.
+4. Create at least one booking slot.
+5. Add `[stripe_booking_calendar]` to your booking page.
+6. Test one booking from frontend.
+7. Check Booking Entries and Activity Logs in admin.
+
 ## New Additions Included
 1. Frontend card layout grouped by month.
 2. Mobile first design with tablet and desktop responsiveness.
@@ -123,6 +134,57 @@ For client portal page:
 3. Paste `[scbc_client_portal]`.
 4. Update page.
 
+## Screenshot Guide
+This section tells you exactly what to screenshot and where to click.
+
+1. Plugin active screen  
+Path: `WP Admin > Plugins > Installed Plugins`  
+Capture: Plugin row showing Stripe Calendar Booking Cards is Active.
+
+2. Stripe settings screen  
+Path: `WP Admin > Settings > Stripe Booking`  
+Capture: Stripe keys fields and webhook URL.
+
+3. Frontend modal copy settings  
+Path: `WP Admin > Settings > Stripe Booking`  
+Capture: Frontend Modal Copy section fields.
+
+4. Modal policy preview card  
+Path: `WP Admin > Settings > Stripe Booking`  
+Capture: Mobile style preview card with sample real upcoming slot.
+
+5. Booking slot creation form  
+Path: `WP Admin > Booking Slots > Add New`  
+Capture: Date, time scroll list, price, timezone, capacity, duration.
+
+6. Frontend booking cards  
+Path: `Booking page with [stripe_booking_calendar]`  
+Capture: Month filter, card grid, pagination, and load more.
+
+7. Booking details modal  
+Path: `Frontend booking page`  
+Capture: Modal with session details and policy text.
+
+8. Stripe checkout handoff  
+Path: `Frontend booking page after clicking Continue to Payment`  
+Capture: Stripe checkout page loaded.
+
+9. Booking success with iCal  
+Path: `Frontend return URL after paid booking`  
+Capture: Success message with timezone and iCal link.
+
+10. Booking entries admin  
+Path: `WP Admin > Booking Slots > Booking Entries`  
+Capture: entries table with filters.
+
+11. Activity logs admin  
+Path: `WP Admin > Booking Slots > Activity Logs`  
+Capture: Today counters and logs table.
+
+12. Export page  
+Path: `WP Admin > Booking Slots > Export Bookings`  
+Capture: Export buttons.
+
 ## How Client Booking Works
 1. Client opens booking page.
 2. Client enters email.
@@ -185,4 +247,3 @@ Check WP cron and email delivery service.
 
 5. Missing logs  
 Open Activity Logs page and clear filters.
-
