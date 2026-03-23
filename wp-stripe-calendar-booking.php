@@ -29,6 +29,7 @@ class Stripe_Calendar_Booking_Cards
         add_action('admin_menu', array($this, 'add_settings_page'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_init', array($this, 'handle_export_request'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_shortcode('stripe_booking_calendar', array($this, 'render_shortcode'));
         add_shortcode('scbc_client_portal', array($this, 'render_client_portal_shortcode'));
         add_action('wp_enqueue_scripts', array($this, 'register_assets'));
@@ -572,6 +573,20 @@ class Stripe_Calendar_Booking_Cards
         wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.3.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
         wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.3.0', true);
+    }
+
+    public function enqueue_admin_assets($hook)
+    {
+        $allowed = array(
+            'scbc_slot_page_scbc-calendar-view',
+            'scbc_slot_page_scbc-booking-entries',
+            'scbc_slot_page_scbc-export-bookings',
+            'settings_page_scbc-settings',
+        );
+        if (!in_array($hook, $allowed, true)) {
+            return;
+        }
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.3.0');
     }
 
     public function render_shortcode()
