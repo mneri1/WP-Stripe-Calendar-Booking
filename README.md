@@ -2,6 +2,10 @@
 
 WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flow with Stripe checkout, reminders, iCal, and full activity logs.
 
+![Plugin Version](https://img.shields.io/badge/plugin-1.7.1-0ea5e9)
+![Stable Tag](https://img.shields.io/badge/stable-1.7.1-2563eb)
+![PHP](https://img.shields.io/badge/php-%3E%3D7.4-334155)
+
 ## Documentation Navigation
 - [README.md](README.md)
 - [HOW_TO_USE.md](HOW_TO_USE.md)
@@ -9,6 +13,16 @@ WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flo
 - [ADMIN_CHEAT_SHEET.md](ADMIN_CHEAT_SHEET.md)
 - [RELEASE_NOTES.md](RELEASE_NOTES.md)
 - [readme.txt](readme.txt)
+
+## Table Of Contents
+- [Maintainer](#maintainer)
+- [Website](#website)
+- [Support](#support)
+- [Core Features](#core-features)
+- [Quick Start](#quick-start)
+- [Shortcodes](#shortcodes)
+- [Admin Menu Paths](#admin-menu-paths)
+- [Documentation](#documentation)
 
 ## Maintainer
 - Mik Neri

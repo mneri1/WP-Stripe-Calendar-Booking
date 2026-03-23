@@ -8,6 +8,18 @@
 5. [RELEASE_NOTES.md](RELEASE_NOTES.md)
 6. [readme.txt](readme.txt)
 
+## Table Of Contents
+1. [1.7.1](#171)
+2. [1.7.0](#170)
+3. [1.6.1](#161)
+4. [1.6.0](#160)
+5. [1.5.0](#150)
+6. [1.4.0](#140)
+7. [1.3.0](#130)
+8. [1.2.0](#120)
+9. [1.1.0](#110)
+10. [1.0.0](#100)
+
 ## 1.7.1
 1. Added Total Logs Today counter.
 2. Added Today Info counter.
@@ -59,4 +71,3 @@
 
 ## 1.0.0
 1. Initial release.
-

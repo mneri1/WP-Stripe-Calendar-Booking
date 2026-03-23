@@ -8,6 +8,13 @@
 5. [RELEASE_NOTES.md](RELEASE_NOTES.md)
 6. [readme.txt](readme.txt)
 
+## Table Of Contents
+1. [Pre Deploy](#pre-deploy)
+2. [Functional Smoke Test](#functional-smoke-test)
+3. [Admin Verification](#admin-verification)
+4. [Email Verification](#email-verification)
+5. [Final Release Steps](#final-release-steps)
+
 Use this checklist every time before pushing live.
 
 ## Pre Deploy

@@ -8,6 +8,14 @@
 5. [RELEASE_NOTES.md](RELEASE_NOTES.md)
 6. [readme.txt](readme.txt)
 
+## Table Of Contents
+1. [Quick Menu Paths](#quick-menu-paths)
+2. [Daily Quick Actions](#daily-quick-actions)
+3. [When Adding New Slots](#when-adding-new-slots)
+4. [If A Client Says Booking Failed](#if-a-client-says-booking-failed)
+5. [If Payment Was Made But Not Reflected](#if-payment-was-made-but-not-reflected)
+6. [Weekly Maintenance](#weekly-maintenance)
+
 ## Quick Menu Paths
 1. `Settings > Stripe Booking`
 2. `Booking Slots > Calendar View`
@@ -56,4 +64,3 @@ Today Error
 2. Review reminders and mail delivery.
 3. Confirm logs are rotating and old data is purged.
 4. Check docs and changelog for updates before next release.
-

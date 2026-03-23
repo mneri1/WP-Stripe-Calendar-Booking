@@ -8,6 +8,23 @@
 5. [RELEASE_NOTES.md](RELEASE_NOTES.md)
 6. [readme.txt](readme.txt)
 
+## Table Of Contents
+1. [Made For](#made-for)
+2. [Maintainer](#maintainer)
+3. [Support](#support)
+4. [What This Plugin Does](#what-this-plugin-does)
+5. [Quick Start Checklist](#quick-start-checklist)
+6. [New Additions Included](#new-additions-included)
+7. [Shortcodes](#shortcodes)
+8. [Step By Step Setup Guide](#step-by-step-setup-guide)
+9. [First Test Booking](#first-test-booking)
+10. [Screenshot Guide](#screenshot-guide)
+11. [How Client Booking Works](#how-client-booking-works)
+12. [Admin Pages You Can Use](#admin-pages-you-can-use)
+13. [Activity Logs Explained Simply](#activity-logs-explained-simply)
+14. [Important Program Rule](#important-program-rule)
+15. [Troubleshooting](#troubleshooting)
+
 ## Made For
 Vibe Connection Lounge  
 https://vibeconnectionlounge.com
