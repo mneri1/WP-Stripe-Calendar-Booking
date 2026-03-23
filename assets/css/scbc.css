@@ -19,30 +19,42 @@
     color: #0f172a;
 }
 
-.scbc-calendar-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    background: #fff;
+.scbc-mobile-calendar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 10px 0 16px;
 }
 
-.scbc-calendar-table th,
-.scbc-calendar-table td {
+.scbc-day-card {
     border: 1px solid #dbe3ee;
-    vertical-align: top;
+    border-radius: 12px;
+    background: #fff;
+    padding: 10px;
 }
 
-.scbc-calendar-table th {
-    background: #f8fafc;
-    padding: 8px;
-    text-align: center;
-    font-size: 13px;
-    letter-spacing: 0.02em;
+.scbc-day-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.scbc-day-card-head h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.scbc-day-card-head span {
+    font-size: 11px;
+    color: #475569;
+}
+
+.scbc-calendar-table {
+    display: none;
 }
 
 .scbc-day-cell {
-    min-height: 180px;
-    height: 190px;
     padding: 6px;
 }
 
@@ -325,4 +337,51 @@
 .scbc-density-compact .scbc-admin-status {
     font-size: 10px;
     padding: 2px 6px;
+}
+
+.scbc-day-slot-list {
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+@media (min-width: 980px) {
+    .scbc-mobile-calendar {
+        display: none;
+    }
+
+    .scbc-calendar-table {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #fff;
+    }
+
+    .scbc-calendar-table th,
+    .scbc-calendar-table td {
+        border: 1px solid #dbe3ee;
+        vertical-align: top;
+    }
+
+    .scbc-calendar-table th {
+        background: #f8fafc;
+        padding: 8px;
+        text-align: center;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+    }
+
+    .scbc-day-cell {
+        min-height: 180px;
+        height: auto;
+    }
+
+    .scbc-admin-table .scbc-day-cell {
+        min-height: 220px;
+    }
+
+    .scbc-day-slot-list {
+        max-height: 260px;
+    }
 }
