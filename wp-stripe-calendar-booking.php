@@ -354,7 +354,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.4;"><strong>Cancellation Policy</strong></p>';
         echo '<p style="margin:0;color:#334155;font-size:13px;line-height:1.4;">' . nl2br(esc_html((string) $options['cancellation_policy_copy'])) . '</p>';
         echo '</div>';
-        echo '<button type="button" style="border:0;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:600;background:#0ea5e9;color:#fff;cursor:pointer;width:100%;">Continue to Payment</button>';
+        echo '<button type="button" style="border:0;border-radius:8px;padding:12px 14px;min-height:48px;font-size:14px;font-weight:600;background:#0ea5e9;color:#fff;cursor:pointer;width:100%;">Continue to Payment</button>';
         echo '</div>';
         echo '</div>';
         echo '</div>';
@@ -974,7 +974,7 @@ class Stripe_Calendar_Booking_Cards
         echo '</div>';
         echo '<div class="scbc-email-wrap">';
         echo '<label for="scbc-customer-email"><strong>Client Email</strong></label>';
-        echo '<input type="email" id="scbc-customer-email" class="scbc-email-input" placeholder="you@example.com" required>';
+        echo '<input type="email" id="scbc-customer-email" class="scbc-email-input" placeholder="Required: you@example.com" required>';
         echo '</div>';
 
         echo '<div class="scbc-list-toolbar">';
@@ -1233,7 +1233,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-portal">';
         echo '<h3>Client Portal 6 Week Mentorship</h3>';
         echo '<form method="get">';
-        echo '<input type="email" name="scbc_email" value="' . esc_attr($email) . '" placeholder="Enter your booking email" class="scbc-email-input" required> ';
+        echo '<input type="email" name="scbc_email" value="' . esc_attr($email) . '" placeholder="Required: enter your booking email" class="scbc-email-input" required> ';
         echo '<button class="scbc-nav-btn" type="submit">Open</button>';
         echo '</form>';
 
