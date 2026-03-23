@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.5.0
+ * Version: 1.6.0
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -264,6 +264,7 @@ class Stripe_Calendar_Booking_Cards
         if (!current_user_can('manage_options')) {
             return;
         }
+        $options = $this->get_settings();
         $stats = $this->get_program_dashboard_stats();
         echo '<div class="wrap"><h1>Stripe Booking Settings</h1>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;">';
@@ -279,7 +280,18 @@ class Stripe_Calendar_Booking_Cards
         settings_fields(self::OPTION_KEY);
         do_settings_sections('scbc-settings');
         submit_button();
-        echo '</form></div>';
+        echo '</form>';
+        echo '<div style="max-width:760px;margin-top:20px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:18px;">';
+        echo '<h2 style="margin-top:0;">Modal Policy Preview</h2>';
+        echo '<p style="margin-top:0;color:#475569;">Preview of client side modal policy text.</p>';
+        echo '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;background:#f8fafc;">';
+        echo '<p style="margin:0 0 8px;"><strong>Session Expectations</strong></p>';
+        echo '<p style="margin:0 0 10px;line-height:1.5;">' . nl2br(esc_html((string) $options['session_expectations_copy'])) . '</p>';
+        echo '<p style="margin:0 0 8px;"><strong>Cancellation Policy</strong></p>';
+        echo '<p style="margin:0;line-height:1.5;">' . nl2br(esc_html((string) $options['cancellation_policy_copy'])) . '</p>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
     }
 
     public function render_admin_calendar_page()
@@ -606,9 +618,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.5.0');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.5.0', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.6.0', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -624,7 +636,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.5.0');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.0');
     }
 
     public function render_shortcode()

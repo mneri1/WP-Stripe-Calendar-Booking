@@ -241,6 +241,17 @@
     100% { opacity: 0.55; }
 }
 
+@keyframes scbcSoftFade {
+    0% {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .scbc-list-card-top {
     border-bottom: 1px solid #eef2f7;
     padding-bottom: 10px;
@@ -277,6 +288,11 @@
 
 .scbc-slot-list {
     display: block;
+}
+
+.scbc-slot-list.scbc-fade-run .scbc-list-view,
+.scbc-slot-list.scbc-fade-run .scbc-empty-list {
+    animation: scbcSoftFade 260ms ease-out;
 }
 
 .scbc-empty-list {

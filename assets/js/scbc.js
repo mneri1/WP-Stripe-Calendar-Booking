@@ -88,6 +88,16 @@
             });
         }
 
+        function triggerSlotFade() {
+            if (!slotList) {
+                return;
+            }
+            slotList.classList.remove('scbc-fade-run');
+            window.requestAnimationFrame(function () {
+                slotList.classList.add('scbc-fade-run');
+            });
+        }
+
         function loadSlots(page, month, append) {
             if (!slotList) {
                 return Promise.resolve();
@@ -141,6 +151,7 @@
 
                     updateLoadMoreButton(payload.data.page, payload.data.maxPages);
                     updatePagination(payload.data.paginationHtml || '');
+                    triggerSlotFade();
                 })
                 .catch(function () {
                     if (skeletonTail && skeletonTail.parentNode) {
