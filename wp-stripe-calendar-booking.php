@@ -831,13 +831,13 @@ class Stripe_Calendar_Booking_Cards
             for ($col = 0; $col < 7; $col++) {
                 $cell_index = ($row * 7) + $col;
                 if ($cell_index < $weekday_of_first || $day > $days_in_month) {
-                    echo '<td class="scbc-empty"></td>';
+                    echo '<td class="scbc-empty"><div class="scbc-day-surface scbc-day-surface-empty"></div></td>';
                     continue;
                 }
                 $date_key = $month . '-' . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
                 $day_slots = isset($slots_by_day[$date_key]) ? $slots_by_day[$date_key] : array();
                 $day_count = count($day_slots);
-                echo '<td class="scbc-day-cell"><div class="scbc-day-header"><div class="scbc-day-number">' . esc_html((string) $day) . '</div><div class="scbc-day-count">' . esc_html((string) $day_count) . ' slot' . ($day_count === 1 ? '' : 's') . '</div></div>';
+                echo '<td class="scbc-day-cell"><div class="scbc-day-surface"><div class="scbc-day-header"><div class="scbc-day-number">' . esc_html((string) $day) . '</div><div class="scbc-day-count">' . esc_html((string) $day_count) . ' slot' . ($day_count === 1 ? '' : 's') . '</div></div>';
                 if ($admin_view && $day_count === 0) {
                     echo '<div class="scbc-day-empty">No sessions</div>';
                 }
@@ -845,7 +845,7 @@ class Stripe_Calendar_Booking_Cards
                 foreach ($day_slots as $slot) {
                     echo $this->render_slot_item_markup($slot, $admin_view, $currency);
                 }
-                echo '</div></td>';
+                echo '</div></div></td>';
                 $day++;
             }
             echo '</tr>';
