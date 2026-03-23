@@ -9,16 +9,28 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [1.7.1](#171): daily counters and log retention.
-2. [1.7.0](#170): full activity logging release.
-3. [1.6.1](#161): settings preview polish.
-4. [1.6.0](#160): preview and fade refinements.
-5. [1.5.0](#150): skeleton load and editable modal copy.
-6. [1.4.0](#140): frontend cards and time picker redesign.
-7. [1.3.0](#130): six session workflow expansion.
-8. [1.2.0](#120): entries page and iCal.
-9. [1.1.0](#110): calendar and webhook baseline.
-10. [1.0.0](#100): initial release.
+1. [1.7.4](#174): earliest badge and docs sync.
+2. [1.7.3](#173): cards only days and admin columns.
+3. [1.7.1](#171): daily counters and log retention.
+4. [1.7.0](#170): full activity logging release.
+5. [1.6.1](#161): settings preview polish.
+6. [1.6.0](#160): preview and fade refinements.
+7. [1.5.0](#150): skeleton load and editable modal copy.
+8. [1.4.0](#140): frontend cards and time picker redesign.
+9. [1.3.0](#130): six session workflow expansion.
+10. [1.2.0](#120): entries page and iCal.
+11. [1.1.0](#110): calendar and webhook baseline.
+12. [1.0.0](#100): initial release.
+
+## 1.7.4
+1. Added earliest time badge in each day card header.
+2. Added day total amount in each day card header.
+3. Updated docs to include admin desktop columns and day header behavior.
+
+## 1.7.3
+1. Switched to card only calendar day output.
+2. Hidden days with no sessions.
+3. Added admin desktop card columns setting with 2 or 4 options.
 
 ## 1.7.1
 1. Added Total Logs Today counter.

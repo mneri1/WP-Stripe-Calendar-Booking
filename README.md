@@ -2,8 +2,8 @@
 
 WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flow with Stripe checkout, reminders, iCal, and full activity logs.
 
-![Plugin Version](https://img.shields.io/badge/plugin-1.7.1-0ea5e9)
-![Stable Tag](https://img.shields.io/badge/stable-1.7.1-2563eb)
+![Plugin Version](https://img.shields.io/badge/plugin-1.7.4-0ea5e9)
+![Stable Tag](https://img.shields.io/badge/stable-1.7.4-2563eb)
 ![PHP](https://img.shields.io/badge/php-%3E%3D7.4-334155)
 
 ## Documentation Navigation
@@ -52,6 +52,8 @@ WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flo
   - Search, level filter, pagination
   - Clear logs action
   - 90 day retention purge
+- Admin desktop card columns setting with 2 or 4 options
+- Day header totals and earliest time badge in calendar card view
 
 ## Quick Start
 1. Upload `wp-stripe-calendar-booking` to `wp-content/plugins`.

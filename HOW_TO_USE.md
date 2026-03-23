@@ -73,9 +73,11 @@ Info today
 Warning today  
 Error today
 12. Automatic log cleanup after 90 days.
-13. Timezone aware iCal with VTIMEZONE blocks.
-14. Client portal shortcode.
-15. Reminder emails.
+13. Admin desktop card columns setting with 2 or 4 options.
+14. Calendar day headers show day total and earliest time badge.
+15. Timezone aware iCal with VTIMEZONE blocks.
+16. Client portal shortcode.
+17. Reminder emails.
 
 ## Shortcodes
 1. `[stripe_booking_calendar]`  
@@ -106,8 +108,9 @@ Think of this like building with blocks.
 
 ### Step 4 Set Program Details
 1. Set Default Event Duration Minutes.
-2. Optional set pricing tier thresholds.
-3. Optional set brand name and brand color for emails.
+2. Set Admin Desktop Card Columns to 2 or 4.
+3. Optional set pricing tier thresholds.
+4. Optional set brand name and brand color for emails.
 
 ### Step 5 Set Reminder Message
 1. Edit reminder subject.
@@ -225,7 +228,11 @@ Capture: entries table with filters.
 Path: `WP Admin > Booking Slots > Activity Logs`  
 Capture: Today counters and logs table.
 
-12. Export page  
+12. Admin calendar card headers  
+Path: `WP Admin > Booking Slots > Calendar View`  
+Capture: Day total amount and Earliest badge in each day card header.
+
+13. Export page  
 Path: `WP Admin > Booking Slots > Export Bookings`  
 Capture: Export buttons.
 

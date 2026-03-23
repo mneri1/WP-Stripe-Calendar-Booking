@@ -4,7 +4,7 @@ Tags: booking, stripe, calendar, mentorship, appointments
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,16 @@ Yes. Reminder templates and frontend modal policy text are editable in settings.
 Yes. It has an Activity Logs page with filters, search, and daily counters.
 
 == Changelog ==
+
+= 1.7.4 =
+- Added earliest time badge in day card header
+- Added day total amount display in day card header
+- Added docs updates for admin desktop columns and day header behavior
+
+= 1.7.3 =
+- Switched calendar render path to card only day output
+- Hid dates with no sessions in calendar card view
+- Added setting to choose admin desktop card columns 2 or 4
 
 = 1.7.1 =
 - Added Total Logs Today counter in Activity Logs page

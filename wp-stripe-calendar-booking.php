@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.3
+ * Version: 1.7.4
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -870,9 +870,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.2');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.4');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.2', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.4', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -888,7 +888,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.2');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.4');
     }
 
     public function render_shortcode()
@@ -1358,9 +1358,15 @@ class Stripe_Calendar_Booking_Cards
             foreach ($day_slots as $slot) {
                 $day_total += isset($slot['price']) ? (float) $slot['price'] : 0.0;
             }
+            $first_slot = $day_slots[0];
+            $earliest_label = 'Earliest: ' . $this->format_slot_datetime(
+                (string) $first_slot['start_raw'],
+                (string) $first_slot['timezone'],
+                get_option('time_format')
+            );
             $date_ts = strtotime($date_key . ' 00:00:00');
             echo '<article class="scbc-day-card">';
-            echo '<header class="scbc-day-card-head"><h4>' . esc_html(wp_date('D, M j', (int) $date_ts)) . '</h4><span>' . esc_html((string) count($day_slots)) . ' slot' . (count($day_slots) === 1 ? '' : 's') . '<br><small class="scbc-day-total">' . esc_html($currency . ' ' . number_format_i18n($day_total, 2) . ' total') . '</small></span></header>';
+            echo '<header class="scbc-day-card-head"><h4>' . esc_html(wp_date('D, M j', (int) $date_ts)) . '</h4><span>' . esc_html((string) count($day_slots)) . ' slot' . (count($day_slots) === 1 ? '' : 's') . '<br><small class="scbc-day-total">' . esc_html($currency . ' ' . number_format_i18n($day_total, 2) . ' total') . '</small><br><small class="scbc-day-earliest">' . esc_html($earliest_label) . '</small></span></header>';
             echo '<div class="scbc-day-card-slots">';
             foreach ($day_slots as $slot) {
                 echo $this->render_slot_item_markup($slot, $admin_view, $currency);
