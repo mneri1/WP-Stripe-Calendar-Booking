@@ -379,8 +379,8 @@
     }
 
     .scbc-day-cell {
-        min-height: 220px;
-        height: auto;
+        min-height: 240px;
+        height: 240px;
         padding: 8px;
         background: #f8fafc;
     }
@@ -390,7 +390,8 @@
     }
 
     .scbc-day-slot-list {
-        max-height: 260px;
+        max-height: 168px;
+        overflow-y: auto;
     }
 
     .scbc-day-surface {
@@ -398,8 +399,11 @@
         border: 1px solid #dbe3ee;
         border-radius: 12px;
         padding: 8px;
-        min-height: 200px;
+        min-height: 100%;
+        height: 100%;
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+        display: flex;
+        flex-direction: column;
     }
 
     .scbc-day-surface-empty {
@@ -418,6 +422,10 @@
     .scbc-admin-table .scbc-slot-item {
         border-radius: 10px;
         margin-bottom: 8px;
+    }
+
+    .scbc-admin-table .scbc-day-slot-list {
+        max-height: 150px;
     }
 }
 
@@ -450,7 +458,7 @@
 
 .scbc-admin-calendar-wrap .scbc-day-card-slots {
     flex: 1;
-    max-height: 230px;
+    max-height: 220px;
     overflow-y: auto;
 }
 

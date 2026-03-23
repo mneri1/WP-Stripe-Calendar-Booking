@@ -582,6 +582,8 @@ class Stripe_Calendar_Booking_Cards
             'scbc_slot_page_scbc-booking-entries',
             'scbc_slot_page_scbc-export-bookings',
             'settings_page_scbc-settings',
+            'post.php',
+            'post-new.php',
         );
         if (!in_array($hook, $allowed, true)) {
             return;
