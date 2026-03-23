@@ -161,6 +161,8 @@ class Stripe_Calendar_Booking_Cards
         add_settings_field('currency', 'Currency', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'currency', 'placeholder' => 'usd'));
         add_settings_field('admin_email', 'Admin Notification Email', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'admin_email', 'placeholder' => get_option('admin_email')));
         add_settings_field('default_duration_minutes', 'Default Event Duration Minutes', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'default_duration_minutes', 'placeholder' => '60'));
+        add_settings_field('tier_standard_max', 'Price Tier Standard Max', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'tier_standard_max', 'placeholder' => '300'));
+        add_settings_field('tier_premium_max', 'Price Tier Premium Max', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'tier_premium_max', 'placeholder' => '700'));
         add_settings_section('scbc_branding', 'Email Branding', '__return_false', 'scbc-settings');
         add_settings_field('brand_name', 'Brand Name', array($this, 'render_text_field'), 'scbc-settings', 'scbc_branding', array('key' => 'brand_name', 'placeholder' => get_bloginfo('name')));
         add_settings_field('brand_color', 'Brand Color', array($this, 'render_text_field'), 'scbc-settings', 'scbc_branding', array('key' => 'brand_color', 'placeholder' => '#0ea5e9'));
@@ -178,6 +180,10 @@ class Stripe_Calendar_Booking_Cards
         $output['currency'] = isset($input['currency']) ? strtolower(sanitize_text_field($input['currency'])) : 'usd';
         $output['admin_email'] = isset($input['admin_email']) ? sanitize_email($input['admin_email']) : '';
         $output['default_duration_minutes'] = isset($input['default_duration_minutes']) ? max(5, absint($input['default_duration_minutes'])) : 60;
+        $standard_max = isset($input['tier_standard_max']) ? max(0, (float) $input['tier_standard_max']) : 300;
+        $premium_max = isset($input['tier_premium_max']) ? max($standard_max, (float) $input['tier_premium_max']) : 700;
+        $output['tier_standard_max'] = $standard_max;
+        $output['tier_premium_max'] = $premium_max;
         $output['brand_name'] = isset($input['brand_name']) ? sanitize_text_field($input['brand_name']) : get_bloginfo('name');
         $output['brand_color'] = isset($input['brand_color']) ? sanitize_hex_color($input['brand_color']) : '#0ea5e9';
         $output['reminder_subject'] = isset($input['reminder_subject']) ? sanitize_text_field($input['reminder_subject']) : 'Reminder 6 Week Mentorship session in 24 hours';
@@ -250,6 +256,10 @@ class Stripe_Calendar_Booking_Cards
         $prev_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('-1 month', $month_ts)), $base_url);
         $next_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('+1 month', $month_ts)), $base_url);
         $density = $this->get_admin_calendar_density();
+        $settings = $this->get_settings();
+        $currency = strtoupper((string) $settings['currency']);
+        $standard_max = (float) $settings['tier_standard_max'];
+        $premium_max = (float) $settings['tier_premium_max'];
         $slots = $this->get_slots_for_month($month, true);
         $slots_by_day = $this->group_slots_by_day($slots);
 
@@ -281,6 +291,11 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-admin-metric"><strong>Open Slots</strong><span>' . esc_html((string) $open_slots) . '</span></div>';
         echo '<div class="scbc-admin-metric"><strong>Full Slots</strong><span>' . esc_html((string) $full_slots) . '</span></div>';
         echo '<div class="scbc-admin-metric"><strong>Booked Spots</strong><span>' . esc_html((string) $booked_spots . '/' . (string) $total_spots) . '</span></div>';
+        echo '</div>';
+        echo '<div class="scbc-tier-legend">';
+        echo '<span class="scbc-tier-chip scbc-tier-chip-standard">Standard: up to ' . esc_html($currency . ' ' . number_format_i18n($standard_max, 2)) . '</span>';
+        echo '<span class="scbc-tier-chip scbc-tier-chip-premium">Premium: up to ' . esc_html($currency . ' ' . number_format_i18n($premium_max, 2)) . '</span>';
+        echo '<span class="scbc-tier-chip scbc-tier-chip-elite">Elite: above ' . esc_html($currency . ' ' . number_format_i18n($premium_max, 2)) . '</span>';
         echo '</div>';
         $this->render_calendar_table($month, $slots_by_day, true, $density);
         echo '</div>';
@@ -1426,10 +1441,13 @@ class Stripe_Calendar_Booking_Cards
     private function get_price_tier($price)
     {
         $amount = (float) $price;
-        if ($amount <= 300) {
+        $settings = $this->get_settings();
+        $standard_max = max(0, (float) $settings['tier_standard_max']);
+        $premium_max = max($standard_max, (float) $settings['tier_premium_max']);
+        if ($amount <= $standard_max) {
             return array('key' => 'standard', 'label' => 'Standard');
         }
-        if ($amount <= 700) {
+        if ($amount <= $premium_max) {
             return array('key' => 'premium', 'label' => 'Premium');
         }
         return array('key' => 'elite', 'label' => 'Elite');
@@ -1793,6 +1811,8 @@ class Stripe_Calendar_Booking_Cards
             'currency' => 'usd',
             'admin_email' => '',
             'default_duration_minutes' => 60,
+            'tier_standard_max' => 300,
+            'tier_premium_max' => 700,
             'reminder_subject' => 'Reminder 6 Week Mentorship session in 24 hours',
             'reminder_body' => "Your mentorship session is coming up in about 24 hours.\n\nSession: {session_title}\nSchedule: {schedule} {timezone} ({gmt_offset})\nAdd to calendar: {ics_url}\n\n{site_name}",
             'brand_name' => get_bloginfo('name'),
