@@ -33,6 +33,12 @@
     padding: 10px;
 }
 
+.scbc-day-card-slots {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
 .scbc-day-card-head {
     display: flex;
     align-items: center;
@@ -412,5 +418,55 @@
     .scbc-admin-table .scbc-slot-item {
         border-radius: 10px;
         margin-bottom: 8px;
+    }
+}
+
+/* Admin calendar card-first mode */
+.scbc-admin-calendar-wrap .scbc-mobile-calendar {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.scbc-admin-calendar-wrap .scbc-calendar-table {
+    display: none !important;
+}
+
+.scbc-admin-calendar-wrap .scbc-day-card {
+    background: #ffffff;
+    border: 1px solid #dbe3ee;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    min-height: 290px;
+    display: flex;
+    flex-direction: column;
+}
+
+.scbc-admin-calendar-wrap .scbc-day-card-head {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.scbc-admin-calendar-wrap .scbc-day-card-slots {
+    flex: 1;
+    max-height: 230px;
+    overflow-y: auto;
+}
+
+.scbc-admin-calendar-wrap .scbc-slot-item {
+    background: #ffffff;
+    border-radius: 10px;
+}
+
+@media (min-width: 768px) {
+    .scbc-admin-calendar-wrap .scbc-mobile-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .scbc-admin-calendar-wrap .scbc-mobile-calendar {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }

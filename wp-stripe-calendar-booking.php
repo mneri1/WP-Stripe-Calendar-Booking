@@ -279,7 +279,7 @@ class Stripe_Calendar_Booking_Cards
             }
         }
 
-        echo '<div class="wrap"><h1>Booking Calendar</h1>';
+        echo '<div class="wrap scbc-admin-calendar-wrap"><h1>Booking Calendar</h1>';
         echo '<p><a class="button" href="' . esc_url($prev_url) . '">Previous Month</a> ';
         echo '<a class="button" href="' . esc_url($next_url) . '">Next Month</a> ';
         echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries')) . '">Booking Entries</a> ';
@@ -806,9 +806,11 @@ class Stripe_Calendar_Booking_Cards
             if (empty($day_slots)) {
                 echo '<div class="scbc-day-empty">No sessions</div>';
             } else {
+                echo '<div class="scbc-day-card-slots">';
                 foreach ($day_slots as $slot) {
                     echo $this->render_slot_item_markup($slot, $admin_view, $currency);
                 }
+                echo '</div>';
             }
             echo '</article>';
         }
