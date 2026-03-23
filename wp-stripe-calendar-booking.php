@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.6.1
+ * Version: 1.7.0
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -18,7 +18,7 @@ class Stripe_Calendar_Booking_Cards
     const NONCE_ACTION = 'scbc_checkout_nonce';
     const PROGRAM_SESSIONS = 6;
     const FRONTEND_PAGE_SIZE = 12;
-    const DB_VERSION = '1.1.0';
+    const DB_VERSION = '1.2.0';
     const DOC_URL = 'https://github.com/mneri1/WP-Stripe-Calendar-Booking/blob/main/HOW_TO_USE.md';
 
     public function __construct()
@@ -151,6 +151,16 @@ class Stripe_Calendar_Booking_Cards
         update_post_meta($post_id, '_scbc_capacity', $capacity);
         update_post_meta($post_id, '_scbc_duration_minutes', $duration_minutes);
         update_post_meta($post_id, '_scbc_booked', $booked_count >= $capacity ? 1 : 0);
+        $this->log_event('slot_saved', 'Booking slot details were saved.', array(
+            'slot_id' => (int) $post_id,
+            'start_datetime' => $start_datetime,
+            'timezone' => $timezone,
+            'price' => (float) wp_unslash($_POST['scbc_price']),
+            'capacity' => $capacity,
+            'duration_minutes' => $duration_minutes,
+            'user_id' => get_current_user_id(),
+            'user_ip' => $this->get_request_ip(),
+        ));
     }
 
     public function add_settings_page()
@@ -160,6 +170,7 @@ class Stripe_Calendar_Booking_Cards
         add_submenu_page('edit.php?post_type=scbc_slot', 'Calendar View', 'Calendar View', 'edit_posts', 'scbc-calendar-view', array($this, 'render_admin_calendar_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Booking Entries', 'Booking Entries', 'edit_posts', 'scbc-booking-entries', array($this, 'render_entries_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Export Bookings', 'Export Bookings', 'edit_posts', 'scbc-export-bookings', array($this, 'render_export_page'));
+        add_submenu_page('edit.php?post_type=scbc_slot', 'Activity Logs', 'Activity Logs', 'manage_options', 'scbc-activity-logs', array($this, 'render_logs_page'));
     }
 
     public function plugin_action_links($links)
@@ -225,6 +236,11 @@ class Stripe_Calendar_Booking_Cards
         if (empty($output['brand_color'])) {
             $output['brand_color'] = '#0ea5e9';
         }
+        $this->log_event('settings_saved', 'Plugin settings were updated.', array(
+            'user_id' => get_current_user_id(),
+            'user_ip' => $this->get_request_ip(),
+            'timezone' => wp_timezone_string(),
+        ));
         return $output;
     }
 
@@ -265,12 +281,22 @@ class Stripe_Calendar_Booking_Cards
             return;
         }
         $options = $this->get_settings();
+        $currency = strtoupper((string) $options['currency']);
         $stats = $this->get_program_dashboard_stats();
         $saved = isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true';
+        $save_time = current_time('Y-m-d H:i:s');
+        $site_timezone = wp_timezone_string();
+        if (empty($site_timezone)) {
+            $site_timezone = 'UTC';
+        }
+        $preview_slot = $this->get_next_preview_slot();
         echo '<div class="wrap"><h1>Stripe Booking Settings</h1>';
         if ($saved) {
-            echo '<div id="scbc-settings-toast" style="position:fixed;right:22px;bottom:22px;background:#0f172a;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:0 10px 24px rgba(15,23,42,0.24);z-index:9999;font-weight:600;">Settings saved successfully.</div>';
-            echo '<script>setTimeout(function(){var t=document.getElementById("scbc-settings-toast");if(t){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);}},2200);</script>';
+            echo '<div id="scbc-settings-toast" style="position:fixed;right:22px;bottom:22px;background:#0f172a;color:#fff;padding:11px 14px 11px 12px;border-radius:10px;box-shadow:0 10px 24px rgba(15,23,42,0.24);z-index:9999;font-weight:600;display:flex;align-items:center;gap:10px;">';
+            echo '<span>Settings saved at ' . esc_html($save_time . ' ' . $site_timezone) . '.</span>';
+            echo '<button type="button" id="scbc-settings-toast-close" aria-label="Dismiss" style="border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:6px;padding:3px 7px;line-height:1;cursor:pointer;">x</button>';
+            echo '</div>';
+            echo '<script>(function(){var t=document.getElementById("scbc-settings-toast");var b=document.getElementById("scbc-settings-toast-close");if(b&&t){b.addEventListener("click",function(){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);});}setTimeout(function(){if(t){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);}},3200);}());</script>';
         }
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;">';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Active Clients</strong><br>' . esc_html((string) $stats['active_clients']) . '</div>';
@@ -294,11 +320,11 @@ class Stripe_Calendar_Booking_Cards
         echo '<button type="button" aria-label="Close" style="position:absolute;top:10px;right:10px;border:0;background:transparent;color:#334155;font-size:18px;width:28px;height:28px;border-radius:999px;line-height:1;">x</button>';
         echo '<h3 style="margin:0 0 10px;">Booking Details</h3>';
         echo '<div style="margin-bottom:10px;">';
-        echo '<p style="margin:0 0 6px;"><strong>Sample Session</strong></p>';
-        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Date:</strong> Tue, Apr 14</p>';
-        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Time:</strong> 11:00 am America/New_York GMT-4</p>';
-        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Duration:</strong> 60 min</p>';
-        echo '<p style="margin:0;color:#1e293b;"><strong>Price:</strong> USD 500.00</p>';
+        echo '<p style="margin:0 0 6px;"><strong>' . esc_html($preview_slot['title']) . '</strong></p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Date:</strong> ' . esc_html($preview_slot['date']) . '</p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Time:</strong> ' . esc_html($preview_slot['time']) . '</p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Duration:</strong> ' . esc_html((string) $preview_slot['duration']) . '</p>';
+        echo '<p style="margin:0;color:#1e293b;"><strong>Price:</strong> ' . esc_html($currency . ' ' . number_format_i18n((float) $preview_slot['price'], 2)) . '</p>';
         echo '</div>';
         echo '<div style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:10px 0 12px;padding:10px 0;">';
         echo '<p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.4;"><strong>Session Expectations</strong></p>';
@@ -526,6 +552,145 @@ class Stripe_Calendar_Booking_Cards
         echo '</div>';
     }
 
+    public function render_logs_page()
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        if (
+            isset($_POST['scbc_clear_logs_nonce'])
+            && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['scbc_clear_logs_nonce'])), 'scbc_clear_logs')
+            && isset($_POST['scbc_clear_logs'])
+            && $_POST['scbc_clear_logs'] === '1'
+        ) {
+            global $wpdb;
+            $table = $this->get_logs_table_name();
+            $wpdb->query("TRUNCATE TABLE {$table}");
+            $this->log_event('logs_cleared', 'Activity logs were cleared from admin page.', array('user_id' => get_current_user_id(), 'user_ip' => $this->get_request_ip()));
+            echo '<div class="notice notice-success"><p>Activity logs cleared.</p></div>';
+        }
+
+        $page = isset($_GET['paged']) ? max(1, absint(wp_unslash($_GET['paged']))) : 1;
+        $level = isset($_GET['scbc_level']) ? sanitize_text_field(wp_unslash($_GET['scbc_level'])) : '';
+        $search = isset($_GET['scbc_q']) ? sanitize_text_field(wp_unslash($_GET['scbc_q'])) : '';
+        $result = $this->get_logs_page($page, 100, $level, $search);
+
+        echo '<div class="wrap">';
+        echo '<h1>Activity Logs</h1>';
+        echo '<p>System events, admin actions, Stripe flow events, reminders, and emails are recorded here.</p>';
+        echo '<form method="get" style="margin:12px 0;">';
+        echo '<input type="hidden" name="post_type" value="scbc_slot">';
+        echo '<input type="hidden" name="page" value="scbc-activity-logs">';
+        echo '<label style="margin-right:8px;">Level ';
+        echo '<select name="scbc_level">';
+        echo '<option value="">All</option>';
+        foreach (array('info' => 'Info', 'warning' => 'Warning', 'error' => 'Error') as $key => $label) {
+            echo '<option value="' . esc_attr($key) . '"' . selected($level, $key, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label> ';
+        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search event or message" style="min-width:260px;"> ';
+        echo '<button class="button">Filter</button>';
+        echo '</form>';
+
+        echo '<form method="post" onsubmit="return confirm(\'Clear all activity logs?\');" style="margin:0 0 12px;">';
+        wp_nonce_field('scbc_clear_logs', 'scbc_clear_logs_nonce');
+        echo '<input type="hidden" name="scbc_clear_logs" value="1">';
+        echo '<button type="submit" class="button button-secondary">Clear Logs</button>';
+        echo '</form>';
+
+        if (empty($result['rows'])) {
+            echo '<p>No logs found.</p></div>';
+            return;
+        }
+
+        echo '<table class="widefat striped">';
+        echo '<thead><tr>';
+        echo '<th>When</th><th>Level</th><th>Event</th><th>Message</th><th>Context</th>';
+        echo '</tr></thead><tbody>';
+        foreach ($result['rows'] as $row) {
+            $context = isset($row['context_json']) ? (string) $row['context_json'] : '';
+            $context_display = $context !== '' ? $context : '{}';
+            echo '<tr>';
+            echo '<td>' . esc_html((string) $row['created_at']) . '</td>';
+            echo '<td><code>' . esc_html((string) $row['level']) . '</code></td>';
+            echo '<td>' . esc_html((string) $row['event_key']) . '</td>';
+            echo '<td>' . esc_html((string) $row['message']) . '</td>';
+            echo '<td><pre style="margin:0;white-space:pre-wrap;word-break:break-word;max-width:520px;">' . esc_html($context_display) . '</pre></td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+
+        if ($result['total_pages'] > 1) {
+            echo '<p style="margin-top:14px;">';
+            for ($i = 1; $i <= $result['total_pages']; $i++) {
+                if ($i === $page) {
+                    echo '<strong style="margin-right:8px;">' . esc_html((string) $i) . '</strong>';
+                    continue;
+                }
+                $page_url = add_query_arg(
+                    array(
+                        'post_type' => 'scbc_slot',
+                        'page' => 'scbc-activity-logs',
+                        'paged' => $i,
+                        'scbc_level' => $level,
+                        'scbc_q' => $search,
+                    ),
+                    admin_url('edit.php')
+                );
+                echo '<a style="margin-right:8px;" href="' . esc_url($page_url) . '">' . esc_html((string) $i) . '</a>';
+            }
+            echo '</p>';
+        }
+
+        echo '</div>';
+    }
+
+    private function get_logs_page($page = 1, $per_page = 100, $level = '', $search = '')
+    {
+        global $wpdb;
+        $table = $this->get_logs_table_name();
+        $safe_page = max(1, (int) $page);
+        $safe_limit = max(1, min(500, (int) $per_page));
+        $offset = ($safe_page - 1) * $safe_limit;
+        $level = sanitize_text_field((string) $level);
+        $search = sanitize_text_field((string) $search);
+
+        $where_parts = array();
+        $params = array();
+        if (in_array($level, array('info', 'warning', 'error'), true)) {
+            $where_parts[] = "level = %s";
+            $params[] = $level;
+        }
+        if ($search !== '') {
+            $where_parts[] = "(event_key LIKE %s OR message LIKE %s OR context_json LIKE %s)";
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $where_sql = '';
+        if (!empty($where_parts)) {
+            $where_sql = ' WHERE ' . implode(' AND ', $where_parts) . ' ';
+        }
+
+        $count_sql = "SELECT COUNT(*) FROM {$table}{$where_sql}";
+        $total = (int) $wpdb->get_var(!empty($params) ? $wpdb->prepare($count_sql, $params) : $count_sql);
+
+        $data_sql = "SELECT * FROM {$table}{$where_sql} ORDER BY id DESC LIMIT %d OFFSET %d";
+        $data_params = $params;
+        $data_params[] = $safe_limit;
+        $data_params[] = $offset;
+        $rows = $wpdb->get_results($wpdb->prepare($data_sql, $data_params), ARRAY_A);
+
+        return array(
+            'rows' => is_array($rows) ? $rows : array(),
+            'total' => $total,
+            'total_pages' => max(1, (int) ceil($total / $safe_limit)),
+        );
+    }
+
     public function handle_export_request()
     {
         if (!is_admin() || !current_user_can('edit_posts')) {
@@ -578,6 +743,14 @@ class Stripe_Calendar_Booking_Cards
                 ));
             }
             fclose($out);
+            $this->log_event('export_entries_csv', 'Booking entries CSV was exported.', array(
+                'rows' => count($entries),
+                'search' => $search,
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'user_id' => get_current_user_id(),
+                'user_ip' => $this->get_request_ip(),
+            ));
             exit;
         }
 
@@ -632,14 +805,18 @@ class Stripe_Calendar_Booking_Cards
         wp_reset_postdata();
 
         fclose($out);
+        $this->log_event('export_slots_csv', 'Aggregate slot bookings CSV was exported.', array(
+            'user_id' => get_current_user_id(),
+            'user_ip' => $this->get_request_ip(),
+        ));
         exit;
     }
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.1');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.6.1', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.0', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -655,7 +832,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.1');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.0');
     }
 
     public function render_shortcode()
@@ -823,6 +1000,30 @@ class Stripe_Calendar_Booking_Cards
     {
         $value = sanitize_text_field((string) $month);
         return preg_match('/^\d{4}-\d{2}$/', $value) ? $value : '';
+    }
+
+    private function get_next_preview_slot()
+    {
+        $slots = $this->collect_public_slots('');
+        if (empty($slots)) {
+            return array(
+                'title' => 'Sample Session',
+                'date' => 'No upcoming slots',
+                'time' => 'Set an upcoming slot to preview real data',
+                'duration' => '60 min',
+                'price' => 0,
+            );
+        }
+        $slot = $slots[0];
+        $timestamp = isset($slot['timestamp']) ? (int) $slot['timestamp'] : 0;
+        $timezone = isset($slot['timezone']) ? (string) $slot['timezone'] : 'UTC';
+        return array(
+            'title' => (string) $slot['title'],
+            'date' => $this->format_slot_datetime((string) $slot['start_raw'], $timezone, 'D, M j'),
+            'time' => $this->format_slot_datetime((string) $slot['start_raw'], $timezone, get_option('time_format')) . ' ' . $timezone . ' ' . $this->get_gmt_offset_label($timezone, $timestamp),
+            'duration' => (string) $this->get_slot_duration_minutes((int) $slot['id']) . ' min',
+            'price' => (float) $slot['price'],
+        );
     }
 
     private function get_available_month_filters()
@@ -1189,14 +1390,22 @@ class Stripe_Calendar_Booking_Cards
         check_ajax_referer(self::NONCE_ACTION, 'nonce');
         $slot_id = isset($_POST['slot_id']) ? absint(wp_unslash($_POST['slot_id'])) : 0;
         $customer_email = isset($_POST['customer_email']) ? sanitize_email(wp_unslash($_POST['customer_email'])) : '';
+        $this->log_event('checkout_session_request', 'Checkout session creation requested.', array(
+            'slot_id' => $slot_id,
+            'customer_email' => $customer_email,
+            'user_ip' => $this->get_request_ip(),
+        ));
         if (!$slot_id || get_post_type($slot_id) !== 'scbc_slot') {
+            $this->log_event('checkout_session_failed', 'Invalid booking slot on checkout creation.', array('slot_id' => $slot_id), 'warning');
             wp_send_json_error(array('message' => 'Invalid booking slot.'), 400);
         }
         if (empty($customer_email) || !is_email($customer_email)) {
+            $this->log_event('checkout_session_failed', 'Invalid customer email on checkout creation.', array('slot_id' => $slot_id, 'customer_email' => $customer_email), 'warning');
             wp_send_json_error(array('message' => 'A valid client email is required.'), 400);
         }
         $booked_total = $this->count_bookings_for_email($customer_email);
         if ($booked_total >= self::PROGRAM_SESSIONS) {
+            $this->log_event('checkout_session_blocked', 'Email reached max sessions.', array('slot_id' => $slot_id, 'customer_email' => $customer_email, 'booked_total' => $booked_total), 'warning');
             wp_send_json_error(array('message' => 'This email already completed all 6 sessions.'), 409);
         }
         $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
@@ -1205,17 +1414,21 @@ class Stripe_Calendar_Booking_Cards
         $timestamp = $this->get_slot_timestamp($start_raw, $timezone);
         $spots_left = $this->get_slot_capacity($slot_id) - $this->get_slot_booked_count($slot_id);
         if ($spots_left < 1) {
+            $this->log_event('checkout_session_blocked', 'Slot is full for checkout creation.', array('slot_id' => $slot_id), 'warning');
             wp_send_json_error(array('message' => 'This slot is already full.'), 409);
         }
         if (!$timestamp || $timestamp < current_time('timestamp', true)) {
+            $this->log_event('checkout_session_blocked', 'Slot is no longer available for checkout creation.', array('slot_id' => $slot_id), 'warning');
             wp_send_json_error(array('message' => 'This slot is no longer available.'), 409);
         }
         if ($price <= 0) {
+            $this->log_event('checkout_session_failed', 'Invalid slot price for checkout creation.', array('slot_id' => $slot_id, 'price' => $price), 'error');
             wp_send_json_error(array('message' => 'Invalid slot price.'), 400);
         }
 
         $settings = $this->get_settings();
         if (empty($settings['secret_key']) || empty($settings['publishable_key'])) {
+            $this->log_event('checkout_session_failed', 'Stripe keys are missing.', array('slot_id' => $slot_id), 'error');
             wp_send_json_error(array('message' => 'Stripe is not configured.'), 500);
         }
 
@@ -1259,14 +1472,17 @@ class Stripe_Calendar_Booking_Cards
         ));
 
         if (is_wp_error($response)) {
+            $this->log_event('checkout_session_failed', 'Stripe API request failed during checkout session creation.', array('slot_id' => $slot_id, 'error' => $response->get_error_message()), 'error');
             wp_send_json_error(array('message' => $response->get_error_message()), 500);
         }
 
         $code = wp_remote_retrieve_response_code($response);
         $data = json_decode((string) wp_remote_retrieve_body($response), true);
         if ($code >= 300 || empty($data['id'])) {
+            $this->log_event('checkout_session_failed', 'Stripe API returned error during checkout creation.', array('slot_id' => $slot_id, 'http_code' => $code, 'response' => $data), 'error');
             wp_send_json_error(array('message' => isset($data['error']['message']) ? $data['error']['message'] : 'Stripe request failed.'), 500);
         }
+        $this->log_event('checkout_session_created', 'Stripe checkout session created.', array('slot_id' => $slot_id, 'session_id' => (string) $data['id'], 'customer_email' => $customer_email));
         wp_send_json_success(array('sessionId' => $data['id']));
     }
 
@@ -1277,6 +1493,12 @@ class Stripe_Calendar_Booking_Cards
         $month = isset($_POST['month']) ? $this->sanitize_month_key(wp_unslash($_POST['month'])) : '';
         $paged = $this->get_public_slots_page($page, self::FRONTEND_PAGE_SIZE, $month);
         $currency = strtoupper($this->get_settings()['currency']);
+        $this->log_event('slots_fetched', 'Frontend slots page fetched.', array(
+            'page' => $paged['page'],
+            'month' => $month,
+            'rows' => count($paged['slots']),
+            'user_ip' => $this->get_request_ip(),
+        ));
         wp_send_json_success(array(
             'html' => $this->render_public_slot_groups($paged['slots'], $currency),
             'page' => $paged['page'],
@@ -1300,24 +1522,29 @@ class Stripe_Calendar_Booking_Cards
         $slot_id = isset($_GET['slot_id']) ? absint(wp_unslash($_GET['slot_id'])) : 0;
         $session_id = isset($_GET['session_id']) ? sanitize_text_field(wp_unslash($_GET['session_id'])) : '';
         if (!$slot_id || !$session_id) {
+            $this->log_event('checkout_return_invalid', 'Checkout return missing slot or session.', array('slot_id' => $slot_id, 'session_id' => $session_id), 'warning');
             $this->redirect_with_notice('cancel');
         }
         if ($this->is_session_already_processed($session_id)) {
+            $this->log_event('checkout_return_already_processed', 'Checkout return session already processed.', array('slot_id' => $slot_id, 'session_id' => $session_id));
             $this->redirect_with_notice('success', array('scbc_slot' => $slot_id, 'scbc_session' => $session_id));
         }
 
         $settings = $this->get_settings();
         if (empty($settings['secret_key'])) {
+            $this->log_event('checkout_return_failed', 'Checkout return failed because Stripe secret key is missing.', array('slot_id' => $slot_id), 'error');
             $this->redirect_with_notice('cancel');
         }
         $session_data = $this->fetch_stripe_session($session_id, $settings['secret_key']);
         if (!$session_data) {
+            $this->log_event('checkout_return_pending', 'Checkout return session could not be confirmed yet.', array('slot_id' => $slot_id, 'session_id' => $session_id), 'warning');
             $this->redirect_with_notice('pending');
         }
 
         $paid = isset($session_data['payment_status']) && $session_data['payment_status'] === 'paid';
         $slot_match = isset($session_data['metadata']['slot_id']) && (int) $session_data['metadata']['slot_id'] === $slot_id;
         if (!$paid || !$slot_match) {
+            $this->log_event('checkout_return_pending', 'Checkout return not paid or slot mismatch.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'paid' => $paid, 'slot_match' => $slot_match), 'warning');
             $this->redirect_with_notice('pending');
         }
 
@@ -1327,6 +1554,7 @@ class Stripe_Calendar_Booking_Cards
         if (!empty($success_email)) {
             $extra['scbc_email'] = $success_email;
         }
+        $this->log_event('checkout_return_success', 'Checkout return finalized booking.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'customer_email' => $success_email));
         $this->redirect_with_notice('success', $extra);
     }
 
@@ -1343,24 +1571,29 @@ class Stripe_Calendar_Booking_Cards
     {
         $settings = $this->get_settings();
         if (empty($settings['webhook_secret'])) {
+            $this->log_event('webhook_failed', 'Webhook secret is not configured.', array(), 'error');
             return new WP_REST_Response(array('error' => 'Webhook secret is not configured.'), 400);
         }
 
         $payload = $request->get_body();
         $signature = $request->get_header('stripe-signature');
         if (!$this->verify_stripe_signature($payload, $signature, $settings['webhook_secret'])) {
+            $this->log_event('webhook_failed', 'Webhook signature verification failed.', array('user_ip' => $this->get_request_ip()), 'warning');
             return new WP_REST_Response(array('error' => 'Invalid signature.'), 400);
         }
 
         $event = json_decode($payload, true);
         if (!is_array($event) || empty($event['id'])) {
+            $this->log_event('webhook_failed', 'Webhook payload is invalid.', array(), 'warning');
             return new WP_REST_Response(array('error' => 'Invalid event payload.'), 400);
         }
         if ($this->is_event_already_processed($event['id'])) {
+            $this->log_event('webhook_skipped', 'Webhook event already processed.', array('event_id' => (string) $event['id']));
             return new WP_REST_Response(array('status' => 'already_processed'), 200);
         }
 
         $event_type = isset($event['type']) ? $event['type'] : '';
+        $this->log_event('webhook_received', 'Webhook event received.', array('event_id' => (string) $event['id'], 'event_type' => (string) $event_type));
         if ($event_type === 'checkout.session.completed' || $event_type === 'checkout.session.async_payment_succeeded') {
             $session = isset($event['data']['object']) ? $event['data']['object'] : array();
             $slot_id = isset($session['metadata']['slot_id']) ? absint($session['metadata']['slot_id']) : 0;
@@ -1370,6 +1603,7 @@ class Stripe_Calendar_Booking_Cards
         }
 
         $this->mark_event_processed($event['id']);
+        $this->log_event('webhook_processed', 'Webhook event processed.', array('event_id' => (string) $event['id'], 'event_type' => (string) $event_type));
         return new WP_REST_Response(array('status' => 'ok'), 200);
     }
 
@@ -1426,6 +1660,11 @@ class Stripe_Calendar_Booking_Cards
             'timeout' => 30,
         ));
         if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
+            $this->log_event('stripe_session_fetch_failed', 'Stripe session lookup failed.', array(
+                'session_id' => (string) $session_id,
+                'error' => is_wp_error($response) ? $response->get_error_message() : '',
+                'http_code' => is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response),
+            ), 'warning');
             return false;
         }
         $data = json_decode((string) wp_remote_retrieve_body($response), true);
@@ -1436,6 +1675,46 @@ class Stripe_Calendar_Booking_Cards
     {
         global $wpdb;
         return $wpdb->prefix . 'scbc_bookings';
+    }
+
+    private function get_logs_table_name()
+    {
+        global $wpdb;
+        return $wpdb->prefix . 'scbc_logs';
+    }
+
+    private function log_event($event_key, $message, $context = array(), $level = 'info')
+    {
+        global $wpdb;
+        $table = $this->get_logs_table_name();
+        $safe_level = in_array($level, array('info', 'warning', 'error'), true) ? $level : 'info';
+        $safe_context = is_array($context) ? $context : array();
+        $encoded_context = wp_json_encode($safe_context);
+        if ($encoded_context === false) {
+            $encoded_context = '{}';
+        }
+        $wpdb->insert(
+            $table,
+            array(
+                'level' => $safe_level,
+                'event_key' => sanitize_key((string) $event_key),
+                'message' => sanitize_text_field((string) $message),
+                'context_json' => sanitize_textarea_field((string) $encoded_context),
+                'created_at' => current_time('mysql'),
+            ),
+            array('%s', '%s', '%s', '%s', '%s')
+        );
+    }
+
+    private function get_request_ip()
+    {
+        if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $parts = explode(',', (string) wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
+            if (!empty($parts[0])) {
+                return sanitize_text_field(trim($parts[0]));
+            }
+        }
+        return isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field((string) wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     }
 
     public static function activate()
@@ -1464,6 +1743,7 @@ class Stripe_Calendar_Booking_Cards
     {
         global $wpdb;
         $table = $this->get_bookings_table_name();
+        $logs_table = $this->get_logs_table_name();
         $charset_collate = $wpdb->get_charset_collate();
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -1487,7 +1767,21 @@ class Stripe_Calendar_Booking_Cards
             KEY reminder_24h_sent (reminder_24h_sent)
         ) {$charset_collate};";
         dbDelta($sql);
+        $logs_sql = "CREATE TABLE {$logs_table} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            level varchar(16) NOT NULL DEFAULT 'info',
+            event_key varchar(120) NOT NULL DEFAULT '',
+            message text NOT NULL,
+            context_json longtext NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY level (level),
+            KEY event_key (event_key),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+        dbDelta($logs_sql);
         update_option('scbc_db_version', self::DB_VERSION);
+        $this->log_event('schema_updated', 'Database schema checked and updated.', array('db_version' => self::DB_VERSION));
     }
 
     private function insert_booking_entry($slot_id, $session_data, $source)
@@ -1495,11 +1789,13 @@ class Stripe_Calendar_Booking_Cards
         global $wpdb;
         $session_id = isset($session_data['id']) ? sanitize_text_field($session_data['id']) : '';
         if (empty($session_id)) {
+            $this->log_event('booking_entry_skipped', 'Booking entry insert skipped because session id is empty.', array('slot_id' => (int) $slot_id), 'warning');
             return;
         }
         $table = $this->get_bookings_table_name();
         $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE session_id = %s LIMIT 1", $session_id));
         if (!empty($exists)) {
+            $this->log_event('booking_entry_skipped', 'Booking entry insert skipped because session already exists.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id));
             return;
         }
 
@@ -1519,6 +1815,7 @@ class Stripe_Calendar_Booking_Cards
             ),
             array('%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s')
         );
+        $this->log_event('booking_entry_inserted', 'Booking entry inserted.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id, 'source' => sanitize_text_field($source)));
     }
 
     private function get_booking_entries($limit = 200)
@@ -1608,6 +1905,7 @@ class Stripe_Calendar_Booking_Cards
     {
         if (!wp_next_scheduled('scbc_hourly_reminder_event')) {
             wp_schedule_event(time() + 300, 'hourly', 'scbc_hourly_reminder_event');
+            $this->log_event('reminder_cron_scheduled', 'Reminder cron event was scheduled.', array());
         }
     }
 
@@ -1664,6 +1962,11 @@ class Stripe_Calendar_Booking_Cards
                 'site_name' => get_bloginfo('name'),
             ));
             wp_mail($email, $subject, $message);
+            $this->log_event('reminder_sent', '24 hour reminder email sent.', array(
+                'slot_id' => $slot_id,
+                'email' => $email,
+                'session_id' => (string) $row['session_id'],
+            ));
 
             $wpdb->update(
                 $table,
@@ -1908,6 +2211,7 @@ class Stripe_Calendar_Booking_Cards
     {
         $session_id = isset($session_data['id']) ? sanitize_text_field($session_data['id']) : '';
         if (!empty($session_id) && $this->is_session_already_processed($session_id)) {
+            $this->log_event('booking_finalize_skipped', 'Finalize booking skipped because session was already processed.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id));
             return;
         }
 
@@ -1922,6 +2226,7 @@ class Stripe_Calendar_Booking_Cards
             if (!empty($session_id)) {
                 $this->mark_session_processed($session_id);
             }
+            $this->log_event('booking_finalize_blocked', 'Finalize booking blocked because program sessions are completed.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id, 'customer_email' => $customer_email), 'warning');
             return;
         }
 
@@ -1949,6 +2254,14 @@ class Stripe_Calendar_Booking_Cards
         $this->insert_booking_entry($slot_id, $session_data, $source);
         $this->send_admin_notification($slot_id, $session_data);
         $this->send_customer_notification($slot_id, $session_data);
+        $this->log_event('booking_finalized', 'Booking finalized and notifications dispatched.', array(
+            'slot_id' => (int) $slot_id,
+            'session_id' => $session_id,
+            'source' => sanitize_text_field($source),
+            'customer_email' => $customer_email,
+            'booked_count' => $this->get_slot_booked_count($slot_id),
+            'capacity' => $this->get_slot_capacity($slot_id),
+        ));
     }
 
     private function send_admin_notification($slot_id, $session_data)
@@ -1956,28 +2269,32 @@ class Stripe_Calendar_Booking_Cards
         $settings = $this->get_settings();
         $to = !empty($settings['admin_email']) ? $settings['admin_email'] : get_option('admin_email');
         if (empty($to)) {
+            $this->log_event('admin_email_skipped', 'Admin notification skipped because admin email is missing.', array('slot_id' => (int) $slot_id), 'warning');
             return;
         }
-        wp_mail(
+        $sent = wp_mail(
             $to,
             'New booking paid: ' . get_the_title($slot_id),
             $this->build_branded_email_html($slot_id, $session_data, 'admin'),
             array('Content-Type: text/html; charset=UTF-8')
         );
+        $this->log_event($sent ? 'admin_email_sent' : 'admin_email_failed', $sent ? 'Admin notification sent.' : 'Admin notification failed to send.', array('slot_id' => (int) $slot_id, 'to' => $to), $sent ? 'info' : 'error');
     }
 
     private function send_customer_notification($slot_id, $session_data)
     {
         $to = isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : '';
         if (empty($to)) {
+            $this->log_event('customer_email_skipped', 'Customer notification skipped because customer email is missing.', array('slot_id' => (int) $slot_id), 'warning');
             return;
         }
-        wp_mail(
+        $sent = wp_mail(
             $to,
             'Booking confirmed: ' . get_the_title($slot_id),
             $this->build_branded_email_html($slot_id, $session_data, 'customer'),
             array('Content-Type: text/html; charset=UTF-8')
         );
+        $this->log_event($sent ? 'customer_email_sent' : 'customer_email_failed', $sent ? 'Customer notification sent.' : 'Customer notification failed to send.', array('slot_id' => (int) $slot_id, 'to' => $to), $sent ? 'info' : 'error');
     }
 
     private function build_branded_email_html($slot_id, $session_data, $audience)
@@ -2013,11 +2330,13 @@ class Stripe_Calendar_Booking_Cards
         $slot_id = isset($_GET['slot_id']) ? absint(wp_unslash($_GET['slot_id'])) : 0;
         $session_id = isset($_GET['session_id']) ? sanitize_text_field(wp_unslash($_GET['session_id'])) : '';
         if ($slot_id < 1 || empty($session_id)) {
+            $this->log_event('ics_download_failed', 'iCal download failed because request is invalid.', array('slot_id' => $slot_id, 'session_id' => $session_id), 'warning');
             wp_die('Invalid iCal request.');
         }
 
         $entry = $this->get_booking_entry_by_session($session_id);
         if (!is_array($entry) || (int) $entry['slot_id'] !== $slot_id) {
+            $this->log_event('ics_download_failed', 'iCal download failed because booking entry was not found.', array('slot_id' => $slot_id, 'session_id' => $session_id), 'warning');
             wp_die('Booking entry not found.');
         }
 
@@ -2027,6 +2346,7 @@ class Stripe_Calendar_Booking_Cards
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . $filename);
+        $this->log_event('ics_downloaded', 'iCal file downloaded.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'user_ip' => $this->get_request_ip()));
         echo $ics;
         exit;
     }
