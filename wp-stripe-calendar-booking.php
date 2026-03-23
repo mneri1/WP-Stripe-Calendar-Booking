@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.0
+ * Version: 1.7.1
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -575,10 +575,16 @@ class Stripe_Calendar_Booking_Cards
         $level = isset($_GET['scbc_level']) ? sanitize_text_field(wp_unslash($_GET['scbc_level'])) : '';
         $search = isset($_GET['scbc_q']) ? sanitize_text_field(wp_unslash($_GET['scbc_q'])) : '';
         $result = $this->get_logs_page($page, 100, $level, $search);
+        $today_counts = $this->get_log_counts_today();
 
         echo '<div class="wrap">';
         echo '<h1>Activity Logs</h1>';
         echo '<p>System events, admin actions, Stripe flow events, reminders, and emails are recorded here.</p>';
+        echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px;">';
+        echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Info</strong><br>' . esc_html((string) $today_counts['info']) . '</div>';
+        echo '<div style="background:#fff7ed;border:1px solid #fed7aa;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Warning</strong><br>' . esc_html((string) $today_counts['warning']) . '</div>';
+        echo '<div style="background:#fef2f2;border:1px solid #fecaca;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Error</strong><br>' . esc_html((string) $today_counts['error']) . '</div>';
+        echo '</div>';
         echo '<form method="get" style="margin:12px 0;">';
         echo '<input type="hidden" name="post_type" value="scbc_slot">';
         echo '<input type="hidden" name="page" value="scbc-activity-logs">';
@@ -689,6 +695,30 @@ class Stripe_Calendar_Booking_Cards
             'total' => $total,
             'total_pages' => max(1, (int) ceil($total / $safe_limit)),
         );
+    }
+
+    private function get_log_counts_today()
+    {
+        global $wpdb;
+        $table = $this->get_logs_table_name();
+        $today = current_time('Y-m-d');
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT level, COUNT(*) AS total FROM {$table} WHERE DATE(created_at) = %s GROUP BY level",
+                $today
+            ),
+            ARRAY_A
+        );
+        $counts = array('info' => 0, 'warning' => 0, 'error' => 0);
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $level = isset($row['level']) ? (string) $row['level'] : '';
+                if (isset($counts[$level])) {
+                    $counts[$level] = (int) $row['total'];
+                }
+            }
+        }
+        return $counts;
     }
 
     public function handle_export_request()
@@ -814,9 +844,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.0');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.1');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.0', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.1', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -832,7 +862,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.0');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.1');
     }
 
     public function render_shortcode()
@@ -1911,6 +1941,7 @@ class Stripe_Calendar_Booking_Cards
 
     public function process_scheduled_reminders()
     {
+        $this->maybe_purge_old_logs();
         global $wpdb;
         $table = $this->get_bookings_table_name();
         $rows = $wpdb->get_results("SELECT * FROM {$table} WHERE reminder_24h_sent = 0 ORDER BY booked_at DESC LIMIT 500", ARRAY_A);
@@ -1979,6 +2010,31 @@ class Stripe_Calendar_Booking_Cards
                 array('%d')
             );
         }
+    }
+
+    private function maybe_purge_old_logs()
+    {
+        $today = current_time('Y-m-d');
+        $last = (string) get_option('scbc_logs_last_purge_date', '');
+        if ($last === $today) {
+            return;
+        }
+        $this->purge_old_logs(90);
+        update_option('scbc_logs_last_purge_date', $today, false);
+    }
+
+    private function purge_old_logs($days)
+    {
+        global $wpdb;
+        $table = $this->get_logs_table_name();
+        $retention_days = max(1, absint($days));
+        $cutoff = gmdate('Y-m-d H:i:s', strtotime('-' . $retention_days . ' days'));
+        $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE created_at < %s", $cutoff));
+        $this->log_event('logs_purged', 'Old logs were purged by retention policy.', array(
+            'retention_days' => $retention_days,
+            'cutoff_utc' => $cutoff,
+            'deleted_rows' => is_numeric($deleted) ? (int) $deleted : 0,
+        ));
     }
 
     private function get_program_dashboard_stats()
