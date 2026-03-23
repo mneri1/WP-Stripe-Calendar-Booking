@@ -21,6 +21,7 @@
         var stripe = Stripe(SCBC_DATA.publishableKey);
         var slotList = document.getElementById('scbc-slot-list');
         var loadMoreBtn = document.getElementById('scbc-load-more');
+        var paginationWrap = document.getElementById('scbc-pagination');
         var monthFilter = document.getElementById('scbc-month-filter');
         var emailInput = document.getElementById('scbc-customer-email');
         var modal = document.getElementById('scbc-slot-modal');
@@ -42,6 +43,13 @@
                 loadMoreBtn.disabled = false;
                 loadMoreBtn.textContent = SCBC_DATA.messages.loadMore;
             }
+        }
+
+        function updatePagination(html) {
+            if (!paginationWrap) {
+                return;
+            }
+            paginationWrap.innerHTML = html || '';
         }
 
         function mergeSectionsByMonth(tempContainer) {
@@ -110,6 +118,7 @@
                     }
 
                     updateLoadMoreButton(payload.data.page, payload.data.maxPages);
+                    updatePagination(payload.data.paginationHtml || '');
                 })
                 .catch(function () {
                     if (!append) {
@@ -132,7 +141,7 @@
             if (modalBookBtn) {
                 modalBookBtn.setAttribute('data-slot-id', '');
                 modalBookBtn.disabled = false;
-                modalBookBtn.textContent = 'Continue to Payment';
+                modalBookBtn.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
             }
         }
 
@@ -203,7 +212,7 @@
                 .catch(function (err) {
                     alert(err.message || SCBC_DATA.messages.error);
                     actionButton.disabled = false;
-                    actionButton.textContent = 'Continue to Payment';
+                    actionButton.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
                 });
         }
 
@@ -258,6 +267,22 @@
         if (monthFilter) {
             monthFilter.addEventListener('change', function () {
                 loadSlots(1, monthFilter.value, false);
+            });
+        }
+
+        if (paginationWrap) {
+            paginationWrap.addEventListener('click', function (event) {
+                var trigger = event.target.closest('.scbc-page-btn, .scbc-page-nav');
+                if (!trigger || trigger.disabled) {
+                    return;
+                }
+                var targetPage = parseInt(trigger.getAttribute('data-page') || '1', 10);
+                if (isNaN(targetPage) || targetPage < 1) {
+                    return;
+                }
+                var month = monthFilter ? monthFilter.value : '';
+                loadSlots(targetPage, month, false);
+                window.scrollTo({ top: slotList ? slotList.offsetTop - 110 : 0, behavior: 'smooth' });
             });
         }
     });

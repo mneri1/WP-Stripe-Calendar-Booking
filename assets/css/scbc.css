@@ -154,6 +154,14 @@
     display: grid;
     gap: 8px;
     margin: 8px 0 14px;
+    position: sticky;
+    top: 12px;
+    z-index: 60;
+    background: rgba(248, 250, 252, 0.95);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(2px);
 }
 
 .scbc-month-filter {
@@ -236,6 +244,49 @@
 
 .scbc-list-actions {
     margin: 6px 0 10px;
+}
+
+.scbc-pagination-wrap {
+    margin: 4px 0 16px;
+}
+
+.scbc-pagination {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.scbc-page-btn,
+.scbc-page-nav {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    min-width: 34px;
+    padding: 9px 10px;
+    cursor: pointer;
+}
+
+.scbc-page-btn.is-active {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #ffffff;
+}
+
+.scbc-page-btn[disabled],
+.scbc-page-nav[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.scbc-page-gap {
+    color: #64748b;
+    font-weight: 600;
+    padding: 0 3px;
 }
 
 .scbc-email-input {
@@ -338,6 +389,20 @@
 .scbc-modal-details p {
     margin: 0 0 8px;
     color: #1e293b;
+}
+
+.scbc-modal-policy {
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 10px 0 12px;
+    padding: 10px 0;
+}
+
+.scbc-modal-policy p {
+    margin: 0 0 8px;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 body.scbc-modal-open {
@@ -501,6 +566,11 @@ body.scbc-modal-open {
         grid-template-columns: auto 1fr;
         align-items: center;
         column-gap: 10px;
+        position: static;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        backdrop-filter: none;
     }
 
     .scbc-month-filter {

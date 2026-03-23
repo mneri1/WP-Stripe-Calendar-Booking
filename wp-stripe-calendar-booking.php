@@ -648,6 +648,7 @@ class Stripe_Calendar_Booking_Cards
                 'loadMore' => 'Load More Schedules',
                 'noMore' => 'No more schedules',
                 'loadError' => 'Could not load schedules right now.',
+                'modalButton' => 'Continue to Payment',
             ),
         ));
 
@@ -721,16 +722,58 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-list-actions">';
         echo '<button id="scbc-load-more" class="scbc-nav-btn" data-page="' . esc_attr((string) $first_page['page']) . '" data-max-pages="' . esc_attr((string) $first_page['max_pages']) . '"' . ($has_more ? '' : ' disabled') . '>' . esc_html($has_more ? 'Load More Schedules' : 'No more schedules') . '</button>';
         echo '</div>';
+        echo '<div id="scbc-pagination" class="scbc-pagination-wrap">' . $this->render_pagination_controls($first_page['page'], $first_page['max_pages']) . '</div>';
 
         echo '<div id="scbc-slot-modal" class="scbc-modal" aria-hidden="true">';
         echo '<div class="scbc-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scbc-modal-title">';
         echo '<button type="button" class="scbc-modal-close" id="scbc-modal-close" aria-label="Close">x</button>';
         echo '<h3 id="scbc-modal-title">Booking Details</h3>';
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
+        echo '<div class="scbc-modal-policy">';
+        echo '<p><strong>Session Expectations</strong></p>';
+        echo '<p>This reserves one mentorship session inside your 6 week program.</p>';
+        echo '<p>Please join five minutes early and be ready with your questions.</p>';
+        echo '<p><strong>Cancellation Policy</strong></p>';
+        echo '<p>Reschedule or cancel at least 24 hours before start time. Late cancel or no show may count as a used session.</p>';
+        echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
         echo '</div>';
         echo '</div>';
         return ob_get_clean();
+    }
+
+    private function render_pagination_controls($page, $max_pages)
+    {
+        $current = max(1, absint($page));
+        $max = max(1, absint($max_pages));
+        if ($max <= 1) {
+            return '';
+        }
+
+        $pages = array(1, $max);
+        for ($i = max(1, $current - 2); $i <= min($max, $current + 2); $i++) {
+            $pages[] = $i;
+        }
+        $pages = array_values(array_unique($pages));
+        sort($pages, SORT_NUMERIC);
+
+        $html = '<div class="scbc-pagination" role="navigation" aria-label="Schedule pagination">';
+        $prev_page = max(1, $current - 1);
+        $next_page = min($max, $current + 1);
+
+        $html .= '<button type="button" class="scbc-page-nav" data-page="' . esc_attr((string) $prev_page) . '"' . ($current <= 1 ? ' disabled' : '') . '>Prev</button>';
+        $last_printed = 0;
+        foreach ($pages as $num) {
+            if ($last_printed > 0 && $num > ($last_printed + 1)) {
+                $html .= '<span class="scbc-page-gap" aria-hidden="true">...</span>';
+            }
+            $html .= '<button type="button" class="scbc-page-btn' . ($num === $current ? ' is-active' : '') . '" data-page="' . esc_attr((string) $num) . '"' . ($num === $current ? ' aria-current="page"' : '') . '>' . esc_html((string) $num) . '</button>';
+            $last_printed = $num;
+        }
+        $html .= '<button type="button" class="scbc-page-nav" data-page="' . esc_attr((string) $next_page) . '"' . ($current >= $max ? ' disabled' : '') . '>Next</button>';
+        $html .= '</div>';
+
+        return $html;
     }
 
     private function sanitize_month_key($month)
@@ -1197,6 +1240,7 @@ class Stripe_Calendar_Booking_Cards
             'maxPages' => $paged['max_pages'],
             'hasMore' => $paged['page'] < $paged['max_pages'],
             'isEmpty' => empty($paged['slots']),
+            'paginationHtml' => $this->render_pagination_controls($paged['page'], $paged['max_pages']),
         ));
     }
 
