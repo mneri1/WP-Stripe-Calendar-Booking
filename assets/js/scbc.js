@@ -30,6 +30,16 @@
         var modalBookBtn = document.getElementById('scbc-modal-book-btn');
         var activeSlotId = '';
 
+        function buildSkeletonMarkup(count) {
+            var total = count || 4;
+            var html = '<div class="scbc-skeleton-grid" aria-hidden="true">';
+            for (var i = 0; i < total; i++) {
+                html += '<article class="scbc-list-card scbc-skeleton-card"><div class="scbc-skeleton-line w70"></div><div class="scbc-skeleton-line w45"></div><div class="scbc-skeleton-gap"></div><div class="scbc-skeleton-line w90"></div><div class="scbc-skeleton-line w65"></div><div class="scbc-skeleton-line w55"></div><div class="scbc-skeleton-line w40"></div><div class="scbc-skeleton-btn"></div></article>';
+            }
+            html += '</div>';
+            return html;
+        }
+
         function updateLoadMoreButton(page, maxPages, disabledText) {
             if (!loadMoreBtn) {
                 return;
@@ -82,9 +92,18 @@
             if (!slotList) {
                 return Promise.resolve();
             }
+            var skeletonTail = null;
             if (loadMoreBtn) {
                 loadMoreBtn.disabled = true;
                 loadMoreBtn.textContent = SCBC_DATA.messages.loadingSlots;
+            }
+            if (append) {
+                skeletonTail = document.createElement('div');
+                skeletonTail.className = 'scbc-loading-tail';
+                skeletonTail.innerHTML = buildSkeletonMarkup(4);
+                slotList.appendChild(skeletonTail);
+            } else {
+                slotList.innerHTML = buildSkeletonMarkup(6);
             }
 
             var form = new FormData();
@@ -105,6 +124,9 @@
                     if (!payload.success || !payload.data) {
                         throw new Error(SCBC_DATA.messages.loadError);
                     }
+                    if (skeletonTail && skeletonTail.parentNode) {
+                        skeletonTail.parentNode.removeChild(skeletonTail);
+                    }
                     if (!append) {
                         slotList.innerHTML = '';
                     }
@@ -121,6 +143,9 @@
                     updatePagination(payload.data.paginationHtml || '');
                 })
                 .catch(function () {
+                    if (skeletonTail && skeletonTail.parentNode) {
+                        skeletonTail.parentNode.removeChild(skeletonTail);
+                    }
                     if (!append) {
                         slotList.innerHTML = '<p class="scbc-empty-list">' + escapeHtml(SCBC_DATA.messages.loadError) + '</p>';
                     }

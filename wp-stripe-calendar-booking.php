@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -197,7 +197,10 @@ class Stripe_Calendar_Booking_Cards
         add_settings_field('brand_color', 'Brand Color', array($this, 'render_text_field'), 'scbc-settings', 'scbc_branding', array('key' => 'brand_color', 'placeholder' => '#0ea5e9'));
         add_settings_section('scbc_notifications', 'Reminder Templates', '__return_false', 'scbc-settings');
         add_settings_field('reminder_subject', 'Reminder Email Subject', array($this, 'render_text_field'), 'scbc-settings', 'scbc_notifications', array('key' => 'reminder_subject', 'placeholder' => 'Reminder 6 Week Mentorship session in 24 hours'));
-        add_settings_field('reminder_body', 'Reminder Email Body', array($this, 'render_textarea_field'), 'scbc-settings', 'scbc_notifications', array('key' => 'reminder_body', 'placeholder' => 'Template with tokens'));
+        add_settings_field('reminder_body', 'Reminder Email Body', array($this, 'render_textarea_field'), 'scbc-settings', 'scbc_notifications', array('key' => 'reminder_body', 'placeholder' => 'Template with tokens', 'description' => 'Tokens: {session_title} {schedule} {timezone} {gmt_offset} {ics_url} {site_name}'));
+        add_settings_section('scbc_frontend_copy', 'Frontend Modal Copy', '__return_false', 'scbc-settings');
+        add_settings_field('session_expectations_copy', 'Session Expectations Copy', array($this, 'render_textarea_field'), 'scbc-settings', 'scbc_frontend_copy', array('key' => 'session_expectations_copy', 'placeholder' => 'Shown before payment confirmation'));
+        add_settings_field('cancellation_policy_copy', 'Cancellation Policy Copy', array($this, 'render_textarea_field'), 'scbc-settings', 'scbc_frontend_copy', array('key' => 'cancellation_policy_copy', 'placeholder' => 'Shown before payment confirmation'));
     }
 
     public function sanitize_settings($input)
@@ -217,6 +220,8 @@ class Stripe_Calendar_Booking_Cards
         $output['brand_color'] = isset($input['brand_color']) ? sanitize_hex_color($input['brand_color']) : '#0ea5e9';
         $output['reminder_subject'] = isset($input['reminder_subject']) ? sanitize_text_field($input['reminder_subject']) : 'Reminder 6 Week Mentorship session in 24 hours';
         $output['reminder_body'] = isset($input['reminder_body']) ? sanitize_textarea_field($input['reminder_body']) : '';
+        $output['session_expectations_copy'] = isset($input['session_expectations_copy']) ? sanitize_textarea_field($input['session_expectations_copy']) : "This reserves one mentorship session inside your 6 week program.\nPlease join five minutes early and be ready with your questions.";
+        $output['cancellation_policy_copy'] = isset($input['cancellation_policy_copy']) ? sanitize_textarea_field($input['cancellation_policy_copy']) : 'Reschedule or cancel at least 24 hours before start time. Late cancel or no show may count as a used session.';
         if (empty($output['brand_color'])) {
             $output['brand_color'] = '#0ea5e9';
         }
@@ -242,12 +247,15 @@ class Stripe_Calendar_Booking_Cards
         $options = $this->get_settings();
         $key = $args['key'];
         $placeholder = isset($args['placeholder']) ? $args['placeholder'] : '';
+        $description = isset($args['description']) ? (string) $args['description'] : '';
+        $description_html = $description !== '' ? '<p class="description">' . esc_html($description) . '</p>' : '';
         printf(
-            '<textarea name="%1$s[%2$s]" rows="7" class="large-text" placeholder="%4$s">%3$s</textarea><p class="description">Tokens: {session_title} {schedule} {timezone} {gmt_offset} {ics_url} {site_name}</p>',
+            '<textarea name="%1$s[%2$s]" rows="7" class="large-text" placeholder="%4$s">%3$s</textarea>%5$s',
             esc_attr(self::OPTION_KEY),
             esc_attr($key),
             esc_textarea(isset($options[$key]) ? $options[$key] : ''),
-            esc_attr($placeholder)
+            esc_attr($placeholder),
+            $description_html
         );
     }
 
@@ -598,9 +606,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.4.0');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.5.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.4.0', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.5.0', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -616,7 +624,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.4.0');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.5.0');
     }
 
     public function render_shortcode()
@@ -631,8 +639,13 @@ class Stripe_Calendar_Booking_Cards
         wp_enqueue_style('scbc-style');
         wp_enqueue_script('scbc-booking');
         $requested_month = isset($_GET['scbc_month']) ? $this->sanitize_month_key(wp_unslash($_GET['scbc_month'])) : '';
-        $first_page = $this->get_public_slots_page(1, self::FRONTEND_PAGE_SIZE, $requested_month);
         $available_months = $this->get_available_month_filters();
+        if (empty($requested_month) && !empty($available_months[0]['value'])) {
+            $requested_month = (string) $available_months[0]['value'];
+        }
+        $first_page = $this->get_public_slots_page(1, self::FRONTEND_PAGE_SIZE, $requested_month);
+        $session_expectations_copy = isset($options['session_expectations_copy']) ? (string) $options['session_expectations_copy'] : '';
+        $cancellation_policy_copy = isset($options['cancellation_policy_copy']) ? (string) $options['cancellation_policy_copy'] : '';
         wp_localize_script('scbc-booking', 'SCBC_DATA', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce(self::NONCE_ACTION),
@@ -731,10 +744,9 @@ class Stripe_Calendar_Booking_Cards
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
         echo '<div class="scbc-modal-policy">';
         echo '<p><strong>Session Expectations</strong></p>';
-        echo '<p>This reserves one mentorship session inside your 6 week program.</p>';
-        echo '<p>Please join five minutes early and be ready with your questions.</p>';
+        echo '<p>' . nl2br(esc_html($session_expectations_copy)) . '</p>';
         echo '<p><strong>Cancellation Policy</strong></p>';
-        echo '<p>Reschedule or cancel at least 24 hours before start time. Late cancel or no show may count as a used session.</p>';
+        echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
         echo '</div>';
@@ -2135,6 +2147,8 @@ class Stripe_Calendar_Booking_Cards
             'tier_premium_max' => 700,
             'reminder_subject' => 'Reminder 6 Week Mentorship session in 24 hours',
             'reminder_body' => "Your mentorship session is coming up in about 24 hours.\n\nSession: {session_title}\nSchedule: {schedule} {timezone} ({gmt_offset})\nAdd to calendar: {ics_url}\n\n{site_name}",
+            'session_expectations_copy' => "This reserves one mentorship session inside your 6 week program.\nPlease join five minutes early and be ready with your questions.",
+            'cancellation_policy_copy' => 'Reschedule or cancel at least 24 hours before start time. Late cancel or no show may count as a used session.',
             'brand_name' => get_bloginfo('name'),
             'brand_color' => '#0ea5e9',
         ));
