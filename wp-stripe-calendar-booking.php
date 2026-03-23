@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.6.0
+ * Version: 1.6.1
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -266,7 +266,12 @@ class Stripe_Calendar_Booking_Cards
         }
         $options = $this->get_settings();
         $stats = $this->get_program_dashboard_stats();
+        $saved = isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true';
         echo '<div class="wrap"><h1>Stripe Booking Settings</h1>';
+        if ($saved) {
+            echo '<div id="scbc-settings-toast" style="position:fixed;right:22px;bottom:22px;background:#0f172a;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:0 10px 24px rgba(15,23,42,0.24);z-index:9999;font-weight:600;">Settings saved successfully.</div>';
+            echo '<script>setTimeout(function(){var t=document.getElementById("scbc-settings-toast");if(t){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);}},2200);</script>';
+        }
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;">';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Active Clients</strong><br>' . esc_html((string) $stats['active_clients']) . '</div>';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Total Sessions Booked</strong><br>' . esc_html((string) $stats['total_sessions']) . '</div>';
@@ -283,12 +288,26 @@ class Stripe_Calendar_Booking_Cards
         echo '</form>';
         echo '<div style="max-width:760px;margin-top:20px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:18px;">';
         echo '<h2 style="margin-top:0;">Modal Policy Preview</h2>';
-        echo '<p style="margin-top:0;color:#475569;">Preview of client side modal policy text.</p>';
-        echo '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;background:#f8fafc;">';
-        echo '<p style="margin:0 0 8px;"><strong>Session Expectations</strong></p>';
-        echo '<p style="margin:0 0 10px;line-height:1.5;">' . nl2br(esc_html((string) $options['session_expectations_copy'])) . '</p>';
-        echo '<p style="margin:0 0 8px;"><strong>Cancellation Policy</strong></p>';
-        echo '<p style="margin:0;line-height:1.5;">' . nl2br(esc_html((string) $options['cancellation_policy_copy'])) . '</p>';
+        echo '<p style="margin-top:0;color:#475569;">Mobile modal width preview with frontend style spacing and action button.</p>';
+        echo '<div style="max-width:388px;padding:12px;background:#eef2f7;border:1px solid #dbe3ee;border-radius:16px;">';
+        echo '<div style="width:100%;max-width:360px;margin:0 auto;background:#fff;border:1px solid #dbe3ee;border-radius:16px;box-shadow:0 18px 48px rgba(15,23,42,.2);padding:16px;position:relative;">';
+        echo '<button type="button" aria-label="Close" style="position:absolute;top:10px;right:10px;border:0;background:transparent;color:#334155;font-size:18px;width:28px;height:28px;border-radius:999px;line-height:1;">x</button>';
+        echo '<h3 style="margin:0 0 10px;">Booking Details</h3>';
+        echo '<div style="margin-bottom:10px;">';
+        echo '<p style="margin:0 0 6px;"><strong>Sample Session</strong></p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Date:</strong> Tue, Apr 14</p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Time:</strong> 11:00 am America/New_York GMT-4</p>';
+        echo '<p style="margin:0 0 6px;color:#1e293b;"><strong>Duration:</strong> 60 min</p>';
+        echo '<p style="margin:0;color:#1e293b;"><strong>Price:</strong> USD 500.00</p>';
+        echo '</div>';
+        echo '<div style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:10px 0 12px;padding:10px 0;">';
+        echo '<p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.4;"><strong>Session Expectations</strong></p>';
+        echo '<p style="margin:0 0 10px;color:#334155;font-size:13px;line-height:1.4;">' . nl2br(esc_html((string) $options['session_expectations_copy'])) . '</p>';
+        echo '<p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.4;"><strong>Cancellation Policy</strong></p>';
+        echo '<p style="margin:0;color:#334155;font-size:13px;line-height:1.4;">' . nl2br(esc_html((string) $options['cancellation_policy_copy'])) . '</p>';
+        echo '</div>';
+        echo '<button type="button" style="border:0;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:600;background:#0ea5e9;color:#fff;cursor:pointer;width:100%;">Continue to Payment</button>';
+        echo '</div>';
         echo '</div>';
         echo '</div>';
         echo '</div>';
@@ -618,9 +637,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.0');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.1');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.6.0', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.6.1', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -636,7 +655,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.0');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.6.1');
     }
 
     public function render_shortcode()
