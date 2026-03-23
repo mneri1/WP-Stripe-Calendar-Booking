@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -17,6 +17,7 @@ class Stripe_Calendar_Booking_Cards
     const OPTION_KEY = 'scbc_settings';
     const NONCE_ACTION = 'scbc_checkout_nonce';
     const PROGRAM_SESSIONS = 6;
+    const FRONTEND_PAGE_SIZE = 12;
     const DB_VERSION = '1.1.0';
     const DOC_URL = 'https://github.com/mneri1/WP-Stripe-Calendar-Booking/blob/main/HOW_TO_USE.md';
 
@@ -35,6 +36,8 @@ class Stripe_Calendar_Booking_Cards
         add_action('wp_enqueue_scripts', array($this, 'register_assets'));
         add_action('wp_ajax_scbc_create_checkout_session', array($this, 'ajax_create_checkout_session'));
         add_action('wp_ajax_nopriv_scbc_create_checkout_session', array($this, 'ajax_create_checkout_session'));
+        add_action('wp_ajax_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
+        add_action('wp_ajax_nopriv_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
         add_action('template_redirect', array($this, 'handle_checkout_return'));
         add_action('template_redirect', array($this, 'handle_ics_download'));
         add_action('rest_api_init', array($this, 'register_webhook_route'));
@@ -597,7 +600,7 @@ class Stripe_Calendar_Booking_Cards
     {
         wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.4.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.3.0', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.4.0', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -627,59 +630,26 @@ class Stripe_Calendar_Booking_Cards
 
         wp_enqueue_style('scbc-style');
         wp_enqueue_script('scbc-booking');
+        $requested_month = isset($_GET['scbc_month']) ? $this->sanitize_month_key(wp_unslash($_GET['scbc_month'])) : '';
+        $first_page = $this->get_public_slots_page(1, self::FRONTEND_PAGE_SIZE, $requested_month);
+        $available_months = $this->get_available_month_filters();
         wp_localize_script('scbc-booking', 'SCBC_DATA', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce(self::NONCE_ACTION),
             'publishableKey' => $options['publishable_key'],
             'programSessions' => self::PROGRAM_SESSIONS,
             'buttonLabel' => 'Book 6 Week Session',
-            'messages' => array('error' => 'Could not start checkout. Please try again.', 'loading' => 'Starting checkout...'),
+            'pageSize' => self::FRONTEND_PAGE_SIZE,
+            'requestedMonth' => $requested_month,
+            'messages' => array(
+                'error' => 'Could not start checkout. Please try again.',
+                'loading' => 'Starting checkout...',
+                'loadingSlots' => 'Loading schedules...',
+                'loadMore' => 'Load More Schedules',
+                'noMore' => 'No more schedules',
+                'loadError' => 'Could not load schedules right now.',
+            ),
         ));
-
-        $now_ts = current_time('timestamp', true);
-        $query = new WP_Query(array(
-            'post_type' => 'scbc_slot',
-            'posts_per_page' => 500,
-            'post_status' => 'publish',
-            'meta_key' => '_scbc_start_datetime',
-            'orderby' => 'meta_value',
-            'order' => 'ASC',
-        ));
-
-        $slots = array();
-        while ($query->have_posts()) {
-            $query->the_post();
-            $slot_id = get_the_ID();
-            $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
-            $timezone = $this->get_slot_timezone($slot_id);
-            $timestamp = $this->get_slot_timestamp($start_raw, $timezone);
-            if ($timestamp < $now_ts) {
-                continue;
-            }
-            $capacity = $this->get_slot_capacity($slot_id);
-            $booked_count = $this->get_slot_booked_count($slot_id);
-            $spots_left = max(0, $capacity - $booked_count);
-            if ($spots_left < 1) {
-                continue;
-            }
-            $month_key = wp_date('Y-m', $timestamp, new DateTimeZone($timezone));
-            if (!isset($slots[$month_key])) {
-                $slots[$month_key] = array();
-            }
-            $slots[$month_key][] = array(
-                'id' => $slot_id,
-                'title' => get_the_title($slot_id),
-                'timestamp' => $timestamp,
-                'start_raw' => $start_raw,
-                'timezone' => $timezone,
-                'price' => (float) get_post_meta($slot_id, '_scbc_price', true),
-                'capacity' => $capacity,
-                'booked_count' => $booked_count,
-                'spots_left' => $spots_left,
-                'booked' => false,
-            );
-        }
-        wp_reset_postdata();
 
         ob_start();
         $notice = isset($_GET['scbc_booking']) ? sanitize_text_field(wp_unslash($_GET['scbc_booking'])) : '';
@@ -729,34 +699,188 @@ class Stripe_Calendar_Booking_Cards
         echo '<input type="email" id="scbc-customer-email" class="scbc-email-input" placeholder="you@example.com" required>';
         echo '</div>';
 
-        if (empty($slots)) {
-            echo '<p>No schedules are available right now.</p>';
-            return ob_get_clean();
+        echo '<div class="scbc-list-toolbar">';
+        echo '<label for="scbc-month-filter"><strong>Filter by Month</strong></label>';
+        echo '<select id="scbc-month-filter" class="scbc-month-filter">';
+        echo '<option value="">All Upcoming Months</option>';
+        foreach ($available_months as $month_option) {
+            echo '<option value="' . esc_attr($month_option['value']) . '"' . selected($requested_month, $month_option['value'], false) . '>' . esc_html($month_option['label']) . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
+
+        echo '<div id="scbc-slot-list" class="scbc-slot-list">';
+        if (!empty($first_page['slots'])) {
+            echo $this->render_public_slot_groups($first_page['slots'], strtoupper($options['currency']));
+        } else {
+            echo '<p class="scbc-empty-list">No schedules are available right now.</p>';
+        }
+        echo '</div>';
+
+        $has_more = $first_page['page'] < $first_page['max_pages'];
+        echo '<div class="scbc-list-actions">';
+        echo '<button id="scbc-load-more" class="scbc-nav-btn" data-page="' . esc_attr((string) $first_page['page']) . '" data-max-pages="' . esc_attr((string) $first_page['max_pages']) . '"' . ($has_more ? '' : ' disabled') . '>' . esc_html($has_more ? 'Load More Schedules' : 'No more schedules') . '</button>';
+        echo '</div>';
+
+        echo '<div id="scbc-slot-modal" class="scbc-modal" aria-hidden="true">';
+        echo '<div class="scbc-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scbc-modal-title">';
+        echo '<button type="button" class="scbc-modal-close" id="scbc-modal-close" aria-label="Close">x</button>';
+        echo '<h3 id="scbc-modal-title">Booking Details</h3>';
+        echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
+        echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
+        echo '</div>';
+        echo '</div>';
+        return ob_get_clean();
+    }
+
+    private function sanitize_month_key($month)
+    {
+        $value = sanitize_text_field((string) $month);
+        return preg_match('/^\d{4}-\d{2}$/', $value) ? $value : '';
+    }
+
+    private function get_available_month_filters()
+    {
+        $all_slots = $this->collect_public_slots('');
+        $months = array();
+        foreach ($all_slots as $slot) {
+            $month_key = wp_date('Y-m', (int) $slot['timestamp'], new DateTimeZone($slot['timezone']));
+            if (!isset($months[$month_key])) {
+                $month_ts = strtotime($month_key . '-01 00:00:00');
+                $months[$month_key] = array(
+                    'value' => $month_key,
+                    'label' => wp_date('F Y', (int) $month_ts),
+                );
+            }
+        }
+        ksort($months);
+        return array_values($months);
+    }
+
+    private function collect_public_slots($month)
+    {
+        $month_key = $this->sanitize_month_key($month);
+        $query_args = array(
+            'post_type' => 'scbc_slot',
+            'posts_per_page' => 2000,
+            'post_status' => 'publish',
+            'meta_key' => '_scbc_start_datetime',
+            'orderby' => 'meta_value',
+            'order' => 'ASC',
+            'fields' => 'ids',
+        );
+        if (!empty($month_key)) {
+            $query_args['meta_query'] = array(
+                'relation' => 'AND',
+                array(
+                    'key' => '_scbc_start_datetime',
+                    'value' => $month_key . '-01T00:00',
+                    'compare' => '>=',
+                    'type' => 'CHAR',
+                ),
+                array(
+                    'key' => '_scbc_start_datetime',
+                    'value' => gmdate('Y-m-d\TH:i', strtotime('+1 month', strtotime($month_key . '-01 00:00:00'))),
+                    'compare' => '<',
+                    'type' => 'CHAR',
+                ),
+            );
         }
 
-        ksort($slots);
-        foreach ($slots as $month_key => $month_slots) {
-            $month_ts = strtotime($month_key . '-01 00:00:00');
-            echo '<section class="scbc-list-view">';
-            echo '<h3 class="scbc-list-month">' . esc_html(wp_date('F Y', (int) $month_ts)) . '</h3>';
-            echo '<div class="scbc-list-grid">';
-            foreach ($month_slots as $slot) {
-                echo '<article class="scbc-list-card">';
-                echo '<div class="scbc-list-card-top">';
-                echo '<h4>' . esc_html($slot['title']) . '</h4>';
-                echo '<span class="scbc-list-date">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], 'D, M j')) . '</span>';
-                echo '</div>';
-                echo '<div class="scbc-list-detail">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format'))) . ' ' . esc_html($slot['timezone']) . ' ' . esc_html($this->get_gmt_offset_label($slot['timezone'], (int) $slot['timestamp'])) . '</div>';
-                echo '<div class="scbc-list-detail">Duration: ' . esc_html((string) $this->get_slot_duration_minutes((int) $slot['id'])) . ' min</div>';
-                echo '<div class="scbc-list-detail">Spots Left: ' . esc_html((string) $slot['spots_left']) . '</div>';
-                echo '<div class="scbc-list-price">' . esc_html(strtoupper($options['currency']) . ' ' . number_format_i18n($slot['price'], 2)) . '</div>';
-                echo '<button class="scbc-book-btn" data-slot-id="' . esc_attr((string) $slot['id']) . '">Book 6 Week Session</button>';
-                echo '</article>';
+        $query = new WP_Query($query_args);
+        $slots = array();
+        $now_ts = current_time('timestamp', true);
+        foreach ($query->posts as $slot_id) {
+            $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
+            $timezone = $this->get_slot_timezone((int) $slot_id);
+            $timestamp = $this->get_slot_timestamp($start_raw, $timezone);
+            if ($timestamp < $now_ts) {
+                continue;
             }
-            echo '</div>';
-            echo '</section>';
+            $capacity = $this->get_slot_capacity((int) $slot_id);
+            $booked_count = $this->get_slot_booked_count((int) $slot_id);
+            $spots_left = max(0, $capacity - $booked_count);
+            if ($spots_left < 1) {
+                continue;
+            }
+            $slots[] = array(
+                'id' => (int) $slot_id,
+                'title' => get_the_title((int) $slot_id),
+                'timestamp' => $timestamp,
+                'start_raw' => $start_raw,
+                'timezone' => $timezone,
+                'price' => (float) get_post_meta((int) $slot_id, '_scbc_price', true),
+                'capacity' => $capacity,
+                'booked_count' => $booked_count,
+                'spots_left' => $spots_left,
+                'booked' => false,
+            );
         }
-        return ob_get_clean();
+        wp_reset_postdata();
+        return $slots;
+    }
+
+    private function get_public_slots_page($page, $per_page, $month)
+    {
+        $all_slots = $this->collect_public_slots($month);
+        $page_num = max(1, absint($page));
+        $limit = max(1, absint($per_page));
+        $total = count($all_slots);
+        $max_pages = max(1, (int) ceil($total / $limit));
+        if ($page_num > $max_pages) {
+            $page_num = $max_pages;
+        }
+        $offset = ($page_num - 1) * $limit;
+        return array(
+            'slots' => array_slice($all_slots, $offset, $limit),
+            'page' => $page_num,
+            'max_pages' => $max_pages,
+            'total' => $total,
+        );
+    }
+
+    private function render_public_slot_groups($slots, $currency)
+    {
+        $grouped = array();
+        foreach ($slots as $slot) {
+            $month_key = wp_date('Y-m', (int) $slot['timestamp'], new DateTimeZone($slot['timezone']));
+            if (!isset($grouped[$month_key])) {
+                $grouped[$month_key] = array();
+            }
+            $grouped[$month_key][] = $slot;
+        }
+        ksort($grouped);
+
+        $html = '';
+        foreach ($grouped as $month_key => $month_slots) {
+            $month_ts = strtotime($month_key . '-01 00:00:00');
+            $html .= '<section class="scbc-list-view" data-month-key="' . esc_attr($month_key) . '">';
+            $html .= '<h3 class="scbc-list-month">' . esc_html(wp_date('F Y', (int) $month_ts)) . '</h3>';
+            $html .= '<div class="scbc-list-grid">';
+            foreach ($month_slots as $slot) {
+                $gmt = $this->get_gmt_offset_label($slot['timezone'], (int) $slot['timestamp']);
+                $date_label = $this->format_slot_datetime($slot['start_raw'], $slot['timezone'], 'D, M j');
+                $time_label = $this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format')) . ' ' . $slot['timezone'] . ' ' . $gmt;
+                $duration_label = (string) $this->get_slot_duration_minutes((int) $slot['id']) . ' min';
+                $spots_label = (string) $slot['spots_left'] . ' of ' . (string) $slot['capacity'];
+                $price_label = $currency . ' ' . number_format_i18n((float) $slot['price'], 2);
+
+                $html .= '<article class="scbc-list-card">';
+                $html .= '<div class="scbc-list-card-top">';
+                $html .= '<h4>' . esc_html($slot['title']) . '</h4>';
+                $html .= '<span class="scbc-list-date">' . esc_html($date_label) . '</span>';
+                $html .= '</div>';
+                $html .= '<div class="scbc-list-detail">' . esc_html($time_label) . '</div>';
+                $html .= '<div class="scbc-list-detail">Duration: ' . esc_html($duration_label) . '</div>';
+                $html .= '<div class="scbc-list-detail">Spots Left: ' . esc_html($spots_label) . '</div>';
+                $html .= '<div class="scbc-list-price">' . esc_html($price_label) . '</div>';
+                $html .= '<button class="scbc-book-btn scbc-open-modal" data-slot-id="' . esc_attr((string) $slot['id']) . '" data-slot-title="' . esc_attr($slot['title']) . '" data-slot-date="' . esc_attr($date_label) . '" data-slot-time="' . esc_attr($time_label) . '" data-slot-duration="' . esc_attr($duration_label) . '" data-slot-spots="' . esc_attr($spots_label) . '" data-slot-price="' . esc_attr($price_label) . '">Book 6 Week Session</button>';
+                $html .= '</article>';
+            }
+            $html .= '</div>';
+            $html .= '</section>';
+        }
+        return $html;
     }
 
     public function render_client_portal_shortcode()
@@ -1058,6 +1182,22 @@ class Stripe_Calendar_Booking_Cards
             wp_send_json_error(array('message' => isset($data['error']['message']) ? $data['error']['message'] : 'Stripe request failed.'), 500);
         }
         wp_send_json_success(array('sessionId' => $data['id']));
+    }
+
+    public function ajax_fetch_slots()
+    {
+        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+        $page = isset($_POST['page']) ? absint(wp_unslash($_POST['page'])) : 1;
+        $month = isset($_POST['month']) ? $this->sanitize_month_key(wp_unslash($_POST['month'])) : '';
+        $paged = $this->get_public_slots_page($page, self::FRONTEND_PAGE_SIZE, $month);
+        $currency = strtoupper($this->get_settings()['currency']);
+        wp_send_json_success(array(
+            'html' => $this->render_public_slot_groups($paged['slots'], $currency),
+            'page' => $paged['page'],
+            'maxPages' => $paged['max_pages'],
+            'hasMore' => $paged['page'] < $paged['max_pages'],
+            'isEmpty' => empty($paged['slots']),
+        ));
     }
 
     public function handle_checkout_return()

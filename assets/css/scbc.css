@@ -150,6 +150,21 @@
     margin: 0 0 18px;
 }
 
+.scbc-list-toolbar {
+    display: grid;
+    gap: 8px;
+    margin: 8px 0 14px;
+}
+
+.scbc-month-filter {
+    width: 100%;
+    max-width: 320px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #ffffff;
+}
+
 .scbc-list-month {
     margin: 0 0 12px;
     color: #0f172a;
@@ -210,6 +225,19 @@
     font-weight: 700;
 }
 
+.scbc-slot-list {
+    display: block;
+}
+
+.scbc-empty-list {
+    margin: 8px 0 0;
+    color: #475569;
+}
+
+.scbc-list-actions {
+    margin: 6px 0 10px;
+}
+
 .scbc-email-input {
     width: 100%;
     max-width: 360px;
@@ -261,6 +289,59 @@
 .scbc-ics-link {
     margin-left: 8px;
     font-weight: 600;
+}
+
+.scbc-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 14px;
+    z-index: 9999;
+}
+
+.scbc-modal[aria-hidden="false"] {
+    display: flex;
+}
+
+.scbc-modal-dialog {
+    width: 100%;
+    max-width: 520px;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #dbe3ee;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+    padding: 16px;
+    position: relative;
+}
+
+.scbc-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: 0;
+    background: transparent;
+    color: #334155;
+    font-size: 18px;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.scbc-modal-close:hover {
+    background: #f1f5f9;
+}
+
+.scbc-modal-details p {
+    margin: 0 0 8px;
+    color: #1e293b;
+}
+
+body.scbc-modal-open {
+    overflow: hidden;
 }
 
 .scbc-admin-status {
@@ -416,6 +497,16 @@
 }
 
 @media (min-width: 768px) {
+    .scbc-list-toolbar {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        column-gap: 10px;
+    }
+
+    .scbc-month-filter {
+        max-width: 280px;
+    }
+
     .scbc-list-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
@@ -502,6 +593,10 @@
     .scbc-list-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
+    }
+
+    .scbc-modal {
+        align-items: center;
     }
 }
 

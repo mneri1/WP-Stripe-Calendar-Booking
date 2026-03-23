@@ -7,66 +7,258 @@
         }
     }
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
     ready(function () {
         if (typeof SCBC_DATA === 'undefined' || !SCBC_DATA.publishableKey) {
             return;
         }
 
         var stripe = Stripe(SCBC_DATA.publishableKey);
-        var buttons = document.querySelectorAll('.scbc-book-btn');
+        var slotList = document.getElementById('scbc-slot-list');
+        var loadMoreBtn = document.getElementById('scbc-load-more');
+        var monthFilter = document.getElementById('scbc-month-filter');
+        var emailInput = document.getElementById('scbc-customer-email');
+        var modal = document.getElementById('scbc-slot-modal');
+        var modalClose = document.getElementById('scbc-modal-close');
+        var modalDetails = document.getElementById('scbc-modal-details');
+        var modalBookBtn = document.getElementById('scbc-modal-book-btn');
+        var activeSlotId = '';
 
-        buttons.forEach(function (button) {
-            button.addEventListener('click', function () {
-                var slotId = this.getAttribute('data-slot-id');
-                var emailInput = document.getElementById('scbc-customer-email');
-                var customerEmail = emailInput ? emailInput.value.trim() : '';
-                if (!slotId) {
+        function updateLoadMoreButton(page, maxPages, disabledText) {
+            if (!loadMoreBtn) {
+                return;
+            }
+            loadMoreBtn.setAttribute('data-page', String(page));
+            loadMoreBtn.setAttribute('data-max-pages', String(maxPages));
+            if (page >= maxPages) {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.textContent = disabledText || SCBC_DATA.messages.noMore;
+            } else {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.textContent = SCBC_DATA.messages.loadMore;
+            }
+        }
+
+        function mergeSectionsByMonth(tempContainer) {
+            if (!slotList) {
+                return;
+            }
+            var sections = tempContainer.querySelectorAll('.scbc-list-view[data-month-key]');
+            sections.forEach(function (section) {
+                var monthKey = section.getAttribute('data-month-key');
+                if (!monthKey) {
+                    slotList.appendChild(section);
                     return;
                 }
-                if (!customerEmail) {
-                    alert('Please enter your client email first.');
-                    if (emailInput) {
-                        emailInput.focus();
+                var existing = slotList.querySelector('.scbc-list-view[data-month-key="' + monthKey + '"]');
+                if (!existing) {
+                    slotList.appendChild(section);
+                    return;
+                }
+                var existingGrid = existing.querySelector('.scbc-list-grid');
+                var incomingGrid = section.querySelector('.scbc-list-grid');
+                if (existingGrid && incomingGrid) {
+                    while (incomingGrid.firstChild) {
+                        existingGrid.appendChild(incomingGrid.firstChild);
                     }
+                }
+            });
+        }
+
+        function loadSlots(page, month, append) {
+            if (!slotList) {
+                return Promise.resolve();
+            }
+            if (loadMoreBtn) {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.textContent = SCBC_DATA.messages.loadingSlots;
+            }
+
+            var form = new FormData();
+            form.append('action', 'scbc_fetch_slots');
+            form.append('nonce', SCBC_DATA.nonce);
+            form.append('page', String(page));
+            form.append('month', month || '');
+
+            return fetch(SCBC_DATA.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: form
+            })
+                .then(function (res) {
+                    return res.json();
+                })
+                .then(function (payload) {
+                    if (!payload.success || !payload.data) {
+                        throw new Error(SCBC_DATA.messages.loadError);
+                    }
+                    if (!append) {
+                        slotList.innerHTML = '';
+                    }
+
+                    if (payload.data.html) {
+                        var temp = document.createElement('div');
+                        temp.innerHTML = payload.data.html;
+                        mergeSectionsByMonth(temp);
+                    } else if (!append) {
+                        slotList.innerHTML = '<p class="scbc-empty-list">No schedules are available right now.</p>';
+                    }
+
+                    updateLoadMoreButton(payload.data.page, payload.data.maxPages);
+                })
+                .catch(function () {
+                    if (!append) {
+                        slotList.innerHTML = '<p class="scbc-empty-list">' + escapeHtml(SCBC_DATA.messages.loadError) + '</p>';
+                    }
+                    if (loadMoreBtn) {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.textContent = SCBC_DATA.messages.loadMore;
+                    }
+                });
+        }
+
+        function closeModal() {
+            if (!modal) {
+                return;
+            }
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('scbc-modal-open');
+            activeSlotId = '';
+            if (modalBookBtn) {
+                modalBookBtn.setAttribute('data-slot-id', '');
+                modalBookBtn.disabled = false;
+                modalBookBtn.textContent = 'Continue to Payment';
+            }
+        }
+
+        function openModal(button) {
+            if (!modal || !modalDetails || !modalBookBtn) {
+                return;
+            }
+            var slotId = button.getAttribute('data-slot-id') || '';
+            if (!slotId) {
+                return;
+            }
+            activeSlotId = slotId;
+            modalBookBtn.setAttribute('data-slot-id', slotId);
+            modalDetails.innerHTML =
+                '<p><strong>' + escapeHtml(button.getAttribute('data-slot-title') || '') + '</strong></p>' +
+                '<p><strong>Date:</strong> ' + escapeHtml(button.getAttribute('data-slot-date') || '') + '</p>' +
+                '<p><strong>Time:</strong> ' + escapeHtml(button.getAttribute('data-slot-time') || '') + '</p>' +
+                '<p><strong>Duration:</strong> ' + escapeHtml(button.getAttribute('data-slot-duration') || '') + '</p>' +
+                '<p><strong>Spots Left:</strong> ' + escapeHtml(button.getAttribute('data-slot-spots') || '') + '</p>' +
+                '<p><strong>Price:</strong> ' + escapeHtml(button.getAttribute('data-slot-price') || '') + '</p>';
+
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('scbc-modal-open');
+        }
+
+        function startCheckout(slotId, actionButton) {
+            var customerEmail = emailInput ? emailInput.value.trim() : '';
+            if (!slotId) {
+                return;
+            }
+            if (!customerEmail) {
+                alert('Please enter your client email first.');
+                if (emailInput) {
+                    emailInput.focus();
+                }
+                return;
+            }
+
+            actionButton.disabled = true;
+            actionButton.textContent = SCBC_DATA.messages.loading;
+
+            var form = new FormData();
+            form.append('action', 'scbc_create_checkout_session');
+            form.append('nonce', SCBC_DATA.nonce);
+            form.append('slot_id', slotId);
+            form.append('return_url', window.location.href);
+            form.append('customer_email', customerEmail);
+
+            fetch(SCBC_DATA.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: form
+            })
+                .then(function (res) {
+                    return res.json();
+                })
+                .then(function (payload) {
+                    if (!payload.success || !payload.data || !payload.data.sessionId) {
+                        throw new Error(payload.data && payload.data.message ? payload.data.message : SCBC_DATA.messages.error);
+                    }
+                    return stripe.redirectToCheckout({ sessionId: payload.data.sessionId });
+                })
+                .then(function (result) {
+                    if (result && result.error) {
+                        throw new Error(result.error.message);
+                    }
+                })
+                .catch(function (err) {
+                    alert(err.message || SCBC_DATA.messages.error);
+                    actionButton.disabled = false;
+                    actionButton.textContent = 'Continue to Payment';
+                });
+        }
+
+        if (slotList) {
+            slotList.addEventListener('click', function (event) {
+                var trigger = event.target.closest('.scbc-open-modal');
+                if (!trigger) {
                     return;
                 }
-
-                button.disabled = true;
-                button.textContent = SCBC_DATA.messages.loading;
-
-                var form = new FormData();
-                form.append('action', 'scbc_create_checkout_session');
-                form.append('nonce', SCBC_DATA.nonce);
-                form.append('slot_id', slotId);
-                form.append('return_url', window.location.href);
-                form.append('customer_email', customerEmail);
-
-                fetch(SCBC_DATA.ajaxUrl, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body: form
-                })
-                    .then(function (res) {
-                        return res.json();
-                    })
-                    .then(function (payload) {
-                        if (!payload.success || !payload.data || !payload.data.sessionId) {
-                            throw new Error(payload.data && payload.data.message ? payload.data.message : SCBC_DATA.messages.error);
-                        }
-
-                        return stripe.redirectToCheckout({ sessionId: payload.data.sessionId });
-                    })
-                    .then(function (result) {
-                        if (result && result.error) {
-                            throw new Error(result.error.message);
-                        }
-                    })
-                    .catch(function (err) {
-                        alert(err.message || SCBC_DATA.messages.error);
-                        button.disabled = false;
-                        button.textContent = SCBC_DATA.buttonLabel || 'Book 6 Week Session';
-                    });
+                openModal(trigger);
             });
+        }
+
+        if (modalBookBtn) {
+            modalBookBtn.addEventListener('click', function () {
+                var slotId = modalBookBtn.getAttribute('data-slot-id') || activeSlotId;
+                startCheckout(slotId, modalBookBtn);
+            });
+        }
+
+        if (modalClose) {
+            modalClose.addEventListener('click', closeModal);
+        }
+
+        if (modal) {
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
+                closeModal();
+            }
         });
+
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function () {
+                var page = parseInt(loadMoreBtn.getAttribute('data-page') || '1', 10);
+                var maxPages = parseInt(loadMoreBtn.getAttribute('data-max-pages') || '1', 10);
+                if (page >= maxPages) {
+                    updateLoadMoreButton(page, maxPages);
+                    return;
+                }
+                var month = monthFilter ? monthFilter.value : '';
+                loadSlots(page + 1, month, true);
+            });
+        }
+
+        if (monthFilter) {
+            monthFilter.addEventListener('change', function () {
+                loadSlots(1, monthFilter.value, false);
+            });
+        }
     });
 })();
