@@ -134,6 +134,25 @@ For client portal page:
 3. Paste `[scbc_client_portal]`.
 4. Update page.
 
+## First Test Booking
+Do this once before going live.
+
+1. Open your booking page.
+2. Type a test email you control.
+3. Click one booking card.
+4. Check that popup shows:
+Title  
+Date and time  
+Price  
+Policy text
+5. Click Continue to Payment.
+6. Complete payment in Stripe test mode.
+7. Return to your site and confirm success message appears.
+8. Click Download iCal and confirm file downloads.
+9. Go to `WP Admin > Booking Slots > Booking Entries` and confirm new row exists.
+10. Go to `WP Admin > Booking Slots > Activity Logs` and confirm events were recorded.
+11. Confirm customer email and admin email both received notifications.
+
 ## Screenshot Guide
 This section tells you exactly what to screenshot and where to click.
 
