@@ -146,6 +146,70 @@
     margin: 10px 0 14px;
 }
 
+.scbc-list-view {
+    margin: 0 0 18px;
+}
+
+.scbc-list-month {
+    margin: 0 0 12px;
+    color: #0f172a;
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+}
+
+.scbc-list-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.scbc-list-card {
+    background: #ffffff;
+    border: 1px solid #dbe3ee;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    padding: 14px;
+    min-height: 248px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.scbc-list-card-top {
+    border-bottom: 1px solid #eef2f7;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.scbc-list-card-top h4 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.scbc-list-date {
+    display: inline-block;
+    margin-top: 6px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.scbc-list-detail {
+    font-size: 13px;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.scbc-list-price {
+    margin: 8px 0 12px;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 700;
+}
+
 .scbc-email-input {
     width: 100%;
     max-width: 360px;
@@ -351,6 +415,13 @@
     padding-right: 2px;
 }
 
+@media (min-width: 768px) {
+    .scbc-list-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+}
+
 @media (min-width: 980px) {
     .scbc-mobile-calendar {
         display: none;
@@ -426,6 +497,11 @@
 
     .scbc-admin-table .scbc-day-slot-list {
         max-height: 150px;
+    }
+
+    .scbc-list-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
     }
 }
 

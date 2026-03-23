@@ -73,6 +73,13 @@ class Stripe_Calendar_Booking_Cards
     {
         wp_nonce_field('scbc_slot_meta_nonce', 'scbc_slot_meta_nonce');
         $start = get_post_meta($post->ID, '_scbc_start_datetime', true);
+        $start_date = '';
+        $start_time = '09:00';
+        if (!empty($start) && strpos((string) $start, 'T') !== false) {
+            $parts = explode('T', (string) $start, 2);
+            $start_date = isset($parts[0]) ? $parts[0] : '';
+            $start_time = isset($parts[1]) ? substr($parts[1], 0, 5) : '09:00';
+        }
         $price = get_post_meta($post->ID, '_scbc_price', true);
         $timezone = $this->get_slot_timezone($post->ID);
         $capacity = $this->get_slot_capacity($post->ID);
@@ -80,8 +87,17 @@ class Stripe_Calendar_Booking_Cards
         $booked_count = $this->get_slot_booked_count($post->ID);
         $spots_left = max(0, $capacity - $booked_count);
 
-        echo '<p><label for="scbc_start_datetime"><strong>Start Date and Time</strong></label><br>';
-        echo '<input type="datetime-local" id="scbc_start_datetime" name="scbc_start_datetime" value="' . esc_attr($start) . '" style="width:100%;max-width:320px" required></p>';
+        echo '<p><label for="scbc_start_date"><strong>Start Date</strong></label><br>';
+        echo '<input type="date" id="scbc_start_date" name="scbc_start_date" value="' . esc_attr($start_date) . '" style="width:100%;max-width:260px" required></p>';
+        echo '<p><label for="scbc_start_time"><strong>Start Time</strong></label><br>';
+        echo '<select id="scbc_start_time" name="scbc_start_time" size="8" style="width:100%;max-width:260px;overflow-y:auto;" required>';
+        for ($h = 0; $h < 24; $h++) {
+            foreach (array('00', '30') as $m) {
+                $time_val = str_pad((string) $h, 2, '0', STR_PAD_LEFT) . ':' . $m;
+                echo '<option value="' . esc_attr($time_val) . '"' . selected($start_time, $time_val, false) . '>' . esc_html($time_val) . '</option>';
+            }
+        }
+        echo '</select><br><small>Scroll up or down to pick time slots.</small></p>';
         echo '<p><label for="scbc_price"><strong>Price</strong></label><br>';
         echo '<input type="number" step="0.01" min="0" id="scbc_price" name="scbc_price" value="' . esc_attr($price) . '" style="width:100%;max-width:220px" required></p>';
         $timezone_options = function_exists('wp_timezone_choice')
@@ -108,7 +124,16 @@ class Stripe_Calendar_Booking_Cards
         if (!current_user_can('edit_post', $post_id)) {
             return;
         }
-        if (!isset($_POST['scbc_start_datetime'], $_POST['scbc_price'])) {
+        if (!isset($_POST['scbc_start_date'], $_POST['scbc_start_time'], $_POST['scbc_price'])) {
+            return;
+        }
+
+        $start_date = sanitize_text_field(wp_unslash($_POST['scbc_start_date']));
+        $start_time = sanitize_text_field(wp_unslash($_POST['scbc_start_time']));
+        $start_datetime = '';
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date) && preg_match('/^\d{2}:\d{2}$/', $start_time)) {
+            $start_datetime = $start_date . 'T' . $start_time;
+        } else {
             return;
         }
 
@@ -117,7 +142,7 @@ class Stripe_Calendar_Booking_Cards
         $duration_minutes = isset($_POST['scbc_duration_minutes']) ? max(5, absint(wp_unslash($_POST['scbc_duration_minutes']))) : $this->get_default_duration_minutes();
         $booked_count = $this->get_slot_booked_count($post_id);
 
-        update_post_meta($post_id, '_scbc_start_datetime', sanitize_text_field(wp_unslash($_POST['scbc_start_datetime'])));
+        update_post_meta($post_id, '_scbc_start_datetime', $start_datetime);
         update_post_meta($post_id, '_scbc_price', (float) wp_unslash($_POST['scbc_price']));
         update_post_meta($post_id, '_scbc_timezone', $timezone);
         update_post_meta($post_id, '_scbc_capacity', $capacity);
@@ -570,7 +595,7 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.3.0');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.4.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
         wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.3.0', true);
     }
@@ -588,7 +613,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.3.0');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.4.0');
     }
 
     public function render_shortcode()
@@ -611,12 +636,50 @@ class Stripe_Calendar_Booking_Cards
             'messages' => array('error' => 'Could not start checkout. Please try again.', 'loading' => 'Starting checkout...'),
         ));
 
-        $month = $this->get_requested_month('scbc_month');
-        $month_ts = strtotime($month . '-01 00:00:00');
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-        $current_url = $request_uri ? home_url($request_uri) : home_url('/');
-        $prev_url = add_query_arg('scbc_month', gmdate('Y-m', strtotime('-1 month', $month_ts)), remove_query_arg('scbc_month', $current_url));
-        $next_url = add_query_arg('scbc_month', gmdate('Y-m', strtotime('+1 month', $month_ts)), remove_query_arg('scbc_month', $current_url));
+        $now_ts = current_time('timestamp', true);
+        $query = new WP_Query(array(
+            'post_type' => 'scbc_slot',
+            'posts_per_page' => 500,
+            'post_status' => 'publish',
+            'meta_key' => '_scbc_start_datetime',
+            'orderby' => 'meta_value',
+            'order' => 'ASC',
+        ));
+
+        $slots = array();
+        while ($query->have_posts()) {
+            $query->the_post();
+            $slot_id = get_the_ID();
+            $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
+            $timezone = $this->get_slot_timezone($slot_id);
+            $timestamp = $this->get_slot_timestamp($start_raw, $timezone);
+            if ($timestamp < $now_ts) {
+                continue;
+            }
+            $capacity = $this->get_slot_capacity($slot_id);
+            $booked_count = $this->get_slot_booked_count($slot_id);
+            $spots_left = max(0, $capacity - $booked_count);
+            if ($spots_left < 1) {
+                continue;
+            }
+            $month_key = wp_date('Y-m', $timestamp, new DateTimeZone($timezone));
+            if (!isset($slots[$month_key])) {
+                $slots[$month_key] = array();
+            }
+            $slots[$month_key][] = array(
+                'id' => $slot_id,
+                'title' => get_the_title($slot_id),
+                'timestamp' => $timestamp,
+                'start_raw' => $start_raw,
+                'timezone' => $timezone,
+                'price' => (float) get_post_meta($slot_id, '_scbc_price', true),
+                'capacity' => $capacity,
+                'booked_count' => $booked_count,
+                'spots_left' => $spots_left,
+                'booked' => false,
+            );
+        }
+        wp_reset_postdata();
 
         ob_start();
         $notice = isset($_GET['scbc_booking']) ? sanitize_text_field(wp_unslash($_GET['scbc_booking'])) : '';
@@ -666,13 +729,33 @@ class Stripe_Calendar_Booking_Cards
         echo '<input type="email" id="scbc-customer-email" class="scbc-email-input" placeholder="you@example.com" required>';
         echo '</div>';
 
-        echo '<div class="scbc-calendar-nav">';
-        echo '<a class="scbc-nav-btn" href="' . esc_url($prev_url) . '">Previous Month</a>';
-        echo '<h3 class="scbc-month-label">' . esc_html(wp_date('F Y', $month_ts)) . '</h3>';
-        echo '<a class="scbc-nav-btn" href="' . esc_url($next_url) . '">Next Month</a>';
-        echo '</div>';
+        if (empty($slots)) {
+            echo '<p>No schedules are available right now.</p>';
+            return ob_get_clean();
+        }
 
-        $this->render_calendar_table($month, $this->group_slots_by_day($this->get_slots_for_month($month, false)), false, 'detailed');
+        ksort($slots);
+        foreach ($slots as $month_key => $month_slots) {
+            $month_ts = strtotime($month_key . '-01 00:00:00');
+            echo '<section class="scbc-list-view">';
+            echo '<h3 class="scbc-list-month">' . esc_html(wp_date('F Y', (int) $month_ts)) . '</h3>';
+            echo '<div class="scbc-list-grid">';
+            foreach ($month_slots as $slot) {
+                echo '<article class="scbc-list-card">';
+                echo '<div class="scbc-list-card-top">';
+                echo '<h4>' . esc_html($slot['title']) . '</h4>';
+                echo '<span class="scbc-list-date">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], 'D, M j')) . '</span>';
+                echo '</div>';
+                echo '<div class="scbc-list-detail">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format'))) . ' ' . esc_html($slot['timezone']) . ' ' . esc_html($this->get_gmt_offset_label($slot['timezone'], (int) $slot['timestamp'])) . '</div>';
+                echo '<div class="scbc-list-detail">Duration: ' . esc_html((string) $this->get_slot_duration_minutes((int) $slot['id'])) . ' min</div>';
+                echo '<div class="scbc-list-detail">Spots Left: ' . esc_html((string) $slot['spots_left']) . '</div>';
+                echo '<div class="scbc-list-price">' . esc_html(strtoupper($options['currency']) . ' ' . number_format_i18n($slot['price'], 2)) . '</div>';
+                echo '<button class="scbc-book-btn" data-slot-id="' . esc_attr((string) $slot['id']) . '">Book 6 Week Session</button>';
+                echo '</article>';
+            }
+            echo '</div>';
+            echo '</section>';
+        }
         return ob_get_clean();
     }
 
