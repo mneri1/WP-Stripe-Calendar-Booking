@@ -1,88 +1,188 @@
-# Vibe Connection Lounge 6 Week Mentorship Plugin Guide
+# Stripe Calendar Booking Cards
 
-## Plugin Name
-Stripe Calendar Booking Cards
+## Made For
+Vibe Connection Lounge  
+https://vibeconnectionlounge.com
 
 ## Maintainer
-Mik Neri
-
-## Website
-https://vibeconnectionlounge.com
+Mik Neri  
+https://mikneri.dev
 
 ## Support
 naturalmysticfrequencies@gmail.com
 
-## Purpose
-This plugin is built for the 6 Week Mentorship workflow.
-Each client email can book up to 6 paid sessions total.
+## What This Plugin Does
+This plugin helps you sell and manage a 6 session mentorship program.
 
-## What It Does
-1. Admin creates session slots with date, price, timezone, capacity, and duration.
-2. Frontend shows a monthly calendar for available slots.
-3. Client enters email, clicks Book 6 Week Session, pays with Stripe.
-4. Booking is saved, confirmations are sent, and iCal download is available.
-5. Admin can review row level entries, filter, export, and monitor progress.
-6. Automated 24 hour reminder emails are sent.
+1. You create booking slots in WordPress admin.
+2. Clients see nice booking cards on your page.
+3. Client clicks a card, sees details in a popup, then pays with Stripe.
+4. Booking is saved, emails are sent, and calendar download is available.
+5. Admin can track everything with entries, exports, and activity logs.
+
+## New Additions Included
+1. Frontend card layout grouped by month.
+2. Mobile first design with tablet and desktop responsiveness.
+3. Month filter dropdown on frontend.
+4. Numbered pagination with previous and next controls.
+5. Load more schedules button.
+6. Booking detail popup before payment.
+7. Editable popup policy text in settings.
+8. Popup policy preview in settings with real upcoming slot data.
+9. Settings save toast with time and timezone plus dismiss button.
+10. Activity Logs admin page.
+11. Daily log summary cards:
+Total logs today  
+Info today  
+Warning today  
+Error today
+12. Automatic log cleanup after 90 days.
+13. Timezone aware iCal with VTIMEZONE blocks.
+14. Client portal shortcode.
+15. Reminder emails.
 
 ## Shortcodes
-- `[stripe_booking_calendar]` booking calendar and checkout flow
-- `[scbc_client_portal]` client portal by email with session count and iCal links
+1. `[stripe_booking_calendar]`  
+Shows booking cards and Stripe checkout flow.
 
-## Initial Setup
-1. Upload and activate plugin.
-2. Open Settings then Stripe Booking.
-3. Add Stripe publishable key, secret key, and webhook secret.
-4. Set currency and admin notification email.
-5. Set Default Event Duration Minutes.
-6. Configure Reminder Email Subject and Reminder Email Body if needed.
-7. Create slots in Booking Slots.
-8. Add shortcode to pages.
+2. `[scbc_client_portal]`  
+Lets client enter email and see used sessions and remaining sessions.
 
-## Stripe Webhook
-Use this endpoint in Stripe:
-`/wp-json/scbc/v1/stripe-webhook`
+## Step By Step Setup Guide
+Think of this like building with blocks.
 
-You can copy the full webhook URL from plugin settings page.
+### Step 1 Install The Plugin
+1. Go to WordPress admin.
+2. Go to Plugins.
+3. Upload the plugin zip.
+4. Click Activate.
 
-## Reminder Template Tokens
-Available tokens:
-- `{session_title}`
-- `{schedule}`
-- `{timezone}`
-- `{gmt_offset}`
-- `{ics_url}`
-- `{site_name}`
+### Step 2 Open Settings
+1. Go to Settings.
+2. Click Stripe Booking.
 
-## Admin Tools
-1. Booking Calendar page
-2. Booking Entries page with search, date filters, and presets
-3. Export Bookings page
-4. Export Entries CSV button from entries page
-5. Settings dashboard cards:
-- Active Clients
-- Completed Clients
-- Total Sessions Booked
-- Total Remaining Sessions
+### Step 3 Add Stripe Keys
+1. Paste Stripe Publishable Key.
+2. Paste Stripe Secret Key.
+3. Paste Stripe Webhook Secret.
+4. Set currency like `usd`.
+5. Set admin notification email.
 
-## Client Portal Flow
-1. Client opens portal page with `[scbc_client_portal]`.
-2. Client enters booking email.
-3. Portal shows used sessions and remaining sessions out of 6.
-4. Portal lists iCal links for booked sessions.
+### Step 4 Set Program Details
+1. Set Default Event Duration Minutes.
+2. Optional set pricing tier thresholds.
+3. Optional set brand name and brand color for emails.
 
-## Notes
-- Program cap is fixed to 6 sessions by design.
-- iCal uses timezone aware DTSTART and DTEND with VTIMEZONE.
-- Success notice includes timezone plus GMT offset explanation.
+### Step 5 Set Reminder Message
+1. Edit reminder subject.
+2. Edit reminder body.
+3. You can use tokens:
+`{session_title}`  
+`{schedule}`  
+`{timezone}`  
+`{gmt_offset}`  
+`{ics_url}`  
+`{site_name}`
+
+### Step 6 Set Popup Policy Text
+1. In settings find Frontend Modal Copy.
+2. Fill Session Expectations Copy.
+3. Fill Cancellation Policy Copy.
+4. Look at Modal Policy Preview below settings form.
+
+### Step 7 Add Stripe Webhook
+1. In Stripe create a webhook endpoint.
+2. Copy webhook URL from plugin settings.
+3. Paste in Stripe endpoint URL.
+4. Listen for checkout session completed events.
+5. Save webhook.
+6. Copy webhook signing secret from Stripe.
+7. Paste it into plugin settings Webhook Secret.
+
+### Step 8 Create Booking Slots
+1. Go to Booking Slots.
+2. Click Add New.
+3. Add title.
+4. Pick Start Date.
+5. Pick Start Time from scroll list.
+6. Set Price.
+7. Set Timezone.
+8. Set Capacity.
+9. Set Duration.
+10. Publish.
+
+### Step 9 Put Shortcode On Page
+1. Open your booking page editor.
+2. Add shortcode block.
+3. Paste `[stripe_booking_calendar]`.
+4. Update page.
+
+For client portal page:
+1. Open another page editor.
+2. Add shortcode block.
+3. Paste `[scbc_client_portal]`.
+4. Update page.
+
+## How Client Booking Works
+1. Client opens booking page.
+2. Client enters email.
+3. Client can filter by month.
+4. Client clicks a booking card button.
+5. Popup shows booking details and policy.
+6. Client clicks Continue to Payment.
+7. Stripe checkout opens.
+8. After payment success client sees confirmation and iCal download link.
+
+## Admin Pages You Can Use
+1. Booking Calendar  
+View slot density and monthly booking status.
+
+2. Booking Entries  
+See paid bookings with filters and pagination.
+
+3. Export Bookings  
+Download booking csv files.
+
+4. Activity Logs  
+See system events and actions.  
+Filter by level and search text.  
+Clear logs when needed.
+
+## Activity Logs Explained Simply
+Think of logs as a notebook.
+
+1. Every important action writes a note in the notebook.
+2. Notes include time, type, message, and context.
+3. Old notes older than 90 days are cleaned automatically.
+
+Logged examples:
+1. Slot saved.
+2. Settings saved.
+3. Checkout request started.
+4. Stripe response success or fail.
+5. Webhook received and processed.
+6. Booking finalized.
+7. Emails sent or failed.
+8. Reminder sent.
+9. Export downloaded.
+10. iCal downloaded.
+
+## Important Program Rule
+Each client email can book up to 6 sessions total.
 
 ## Troubleshooting
-1. If checkout fails, verify Stripe keys and webhook secret.
-2. If reminders do not send, check WP Cron and mail delivery.
-3. If client cannot book, check whether email already reached 6 sessions.
+1. Checkout not starting  
+Check Stripe keys and webhook secret.
 
-## Release Notes Summary
-- 6 week program enforcement
-- client portal
-- reminder automation
-- timezone aware iCal
-- entries filtering and export
+2. Booking not marked paid  
+Check webhook in Stripe and webhook logs.
+
+3. Client cannot book  
+Check if email already used 6 sessions.
+
+4. Reminder not sending  
+Check WP cron and email delivery service.
+
+5. Missing logs  
+Open Activity Logs page and clear filters.
+

@@ -581,6 +581,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<h1>Activity Logs</h1>';
         echo '<p>System events, admin actions, Stripe flow events, reminders, and emails are recorded here.</p>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px;">';
+        echo '<div style="background:#ecfeff;border:1px solid #a5f3fc;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Total Logs Today</strong><br>' . esc_html((string) $today_counts['total']) . '</div>';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Info</strong><br>' . esc_html((string) $today_counts['info']) . '</div>';
         echo '<div style="background:#fff7ed;border:1px solid #fed7aa;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Warning</strong><br>' . esc_html((string) $today_counts['warning']) . '</div>';
         echo '<div style="background:#fef2f2;border:1px solid #fecaca;padding:10px 14px;border-radius:8px;min-width:150px;"><strong>Today Error</strong><br>' . esc_html((string) $today_counts['error']) . '</div>';
@@ -709,10 +710,11 @@ class Stripe_Calendar_Booking_Cards
             ),
             ARRAY_A
         );
-        $counts = array('info' => 0, 'warning' => 0, 'error' => 0);
+        $counts = array('total' => 0, 'info' => 0, 'warning' => 0, 'error' => 0);
         if (is_array($rows)) {
             foreach ($rows as $row) {
                 $level = isset($row['level']) ? (string) $row['level'] : '';
+                $counts['total'] += (int) $row['total'];
                 if (isset($counts[$level])) {
                     $counts[$level] = (int) $row['total'];
                 }
