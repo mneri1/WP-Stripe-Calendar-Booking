@@ -23,6 +23,7 @@
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    background: #fff;
 }
 
 .scbc-calendar-table th,
@@ -35,11 +36,13 @@
     background: #f8fafc;
     padding: 8px;
     text-align: center;
+    font-size: 13px;
+    letter-spacing: 0.02em;
 }
 
 .scbc-day-cell {
-    min-height: 160px;
-    height: 170px;
+    min-height: 180px;
+    height: 190px;
     padding: 6px;
 }
 
@@ -47,9 +50,26 @@
     background: #f8fafc;
 }
 
+.scbc-day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
 .scbc-day-number {
     font-weight: 700;
-    margin-bottom: 6px;
+}
+
+.scbc-day-count {
+    font-size: 11px;
+    color: #475569;
+}
+
+.scbc-day-empty {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 10px;
 }
 
 .scbc-slot-item {
@@ -69,6 +89,12 @@
 .scbc-slot-time,
 .scbc-slot-price {
     font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.scbc-slot-meta {
+    font-size: 11px;
+    color: #475569;
     margin-bottom: 4px;
 }
 
@@ -159,4 +185,44 @@
 .scbc-admin-status.is-booked {
     background: #fef2f2;
     color: #991b1b;
+}
+
+.scbc-admin-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin: 10px 0 16px;
+}
+
+.scbc-admin-metric {
+    background: #fff;
+    border: 1px solid #dbe3ee;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.scbc-admin-metric strong {
+    display: block;
+    color: #334155;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.scbc-admin-metric span {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.scbc-admin-table .scbc-day-cell {
+    height: auto;
+    min-height: 220px;
+}
+
+.scbc-admin-table .scbc-slot-item {
+    background: #fcfdff;
+}
+
+.scbc-admin-table .scbc-slot-title a {
+    text-decoration: none;
 }

@@ -249,6 +249,23 @@ class Stripe_Calendar_Booking_Cards
         $base_url = admin_url('edit.php?post_type=scbc_slot&page=scbc-calendar-view');
         $prev_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('-1 month', $month_ts)), $base_url);
         $next_url = add_query_arg('scbc_admin_month', gmdate('Y-m', strtotime('+1 month', $month_ts)), $base_url);
+        $slots = $this->get_slots_for_month($month, true);
+        $slots_by_day = $this->group_slots_by_day($slots);
+
+        $total_slots = count($slots);
+        $full_slots = 0;
+        $open_slots = 0;
+        $total_spots = 0;
+        $booked_spots = 0;
+        foreach ($slots as $slot) {
+            $total_spots += (int) $slot['capacity'];
+            $booked_spots += (int) $slot['booked_count'];
+            if (!empty($slot['booked'])) {
+                $full_slots++;
+            } else {
+                $open_slots++;
+            }
+        }
 
         echo '<div class="wrap"><h1>Booking Calendar</h1>';
         echo '<p><a class="button" href="' . esc_url($prev_url) . '">Previous Month</a> ';
@@ -256,7 +273,13 @@ class Stripe_Calendar_Booking_Cards
         echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries')) . '">Booking Entries</a> ';
         echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-export-bookings')) . '">Export Bookings</a></p>';
         echo '<h2>' . esc_html(wp_date('F Y', $month_ts)) . '</h2>';
-        $this->render_calendar_table($month, $this->group_slots_by_day($this->get_slots_for_month($month, true)), true);
+        echo '<div class="scbc-admin-metrics">';
+        echo '<div class="scbc-admin-metric"><strong>Total Slots</strong><span>' . esc_html((string) $total_slots) . '</span></div>';
+        echo '<div class="scbc-admin-metric"><strong>Open Slots</strong><span>' . esc_html((string) $open_slots) . '</span></div>';
+        echo '<div class="scbc-admin-metric"><strong>Full Slots</strong><span>' . esc_html((string) $full_slots) . '</span></div>';
+        echo '<div class="scbc-admin-metric"><strong>Booked Spots</strong><span>' . esc_html((string) $booked_spots . '/' . (string) $total_spots) . '</span></div>';
+        echo '</div>';
+        $this->render_calendar_table($month, $slots_by_day, true);
         echo '</div>';
     }
 
@@ -733,7 +756,8 @@ class Stripe_Calendar_Booking_Cards
         $days_in_month = (int) gmdate('t', $month_start);
         $weekday_of_first = (int) gmdate('w', $month_start);
         $currency = strtoupper($this->get_settings()['currency']);
-        echo '<table class="scbc-calendar-table"><thead><tr>';
+        $table_class = $admin_view ? 'scbc-calendar-table scbc-admin-table' : 'scbc-calendar-table';
+        echo '<table class="' . esc_attr($table_class) . '"><thead><tr>';
         foreach (array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat') as $name) {
             echo '<th>' . esc_html($name) . '</th>';
         }
@@ -751,15 +775,31 @@ class Stripe_Calendar_Booking_Cards
                 }
                 $date_key = $month . '-' . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
                 $day_slots = isset($slots_by_day[$date_key]) ? $slots_by_day[$date_key] : array();
-                echo '<td class="scbc-day-cell"><div class="scbc-day-number">' . esc_html((string) $day) . '</div>';
+                $day_count = count($day_slots);
+                echo '<td class="scbc-day-cell"><div class="scbc-day-header"><div class="scbc-day-number">' . esc_html((string) $day) . '</div><div class="scbc-day-count">' . esc_html((string) $day_count) . ' slot' . ($day_count === 1 ? '' : 's') . '</div></div>';
+                if ($admin_view && $day_count === 0) {
+                    echo '<div class="scbc-day-empty">No sessions</div>';
+                }
                 foreach ($day_slots as $slot) {
+                    $gmt = $this->get_gmt_offset_label($slot['timezone'], (int) $slot['timestamp']);
+                    $duration = $this->get_slot_duration_minutes((int) $slot['id']);
                     echo '<div class="scbc-slot-item">';
-                    echo '<div class="scbc-slot-title">' . esc_html($slot['title']) . '</div>';
-                    echo '<div class="scbc-slot-time">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format'))) . ' ' . esc_html($slot['timezone']) . '</div>';
-                    echo '<div class="scbc-slot-price">' . esc_html($currency . ' ' . number_format_i18n($slot['price'], 2)) . '</div>';
-                    echo '<div class="scbc-slot-spots">Spots Left: ' . esc_html((string) $slot['spots_left']) . '</div>';
                     if ($admin_view) {
+                        $edit_url = get_edit_post_link((int) $slot['id'], '');
+                        echo '<div class="scbc-slot-title"><a href="' . esc_url((string) $edit_url) . '">' . esc_html($slot['title']) . '</a></div>';
+                    } else {
+                        echo '<div class="scbc-slot-title">' . esc_html($slot['title']) . '</div>';
+                    }
+                    echo '<div class="scbc-slot-time">' . esc_html($this->format_slot_datetime($slot['start_raw'], $slot['timezone'], get_option('time_format'))) . ' ' . esc_html($slot['timezone']) . ' ' . esc_html($gmt) . '</div>';
+                    echo '<div class="scbc-slot-meta">Duration: ' . esc_html((string) $duration) . ' min</div>';
+                    echo '<div class="scbc-slot-price">' . esc_html($currency . ' ' . number_format_i18n($slot['price'], 2)) . '</div>';
+                    echo '<div class="scbc-slot-spots">Spots Left: ' . esc_html((string) $slot['spots_left']) . ' of ' . esc_html((string) $slot['capacity']) . '</div>';
+                    if ($admin_view) {
+                        $last_email = (string) get_post_meta((int) $slot['id'], '_scbc_customer_email', true);
                         echo '<div class="scbc-admin-status ' . ($slot['booked'] ? 'is-booked' : 'is-open') . '">' . ($slot['booked'] ? 'Full' : 'Open') . ' ' . esc_html((string) $slot['booked_count']) . '/' . esc_html((string) $slot['capacity']) . '</div>';
+                        if (!empty($last_email)) {
+                            echo '<div class="scbc-slot-meta">Last Client: ' . esc_html($last_email) . '</div>';
+                        }
                     } else {
                         if ($slot['spots_left'] > 0) {
                             echo '<button class="scbc-book-btn" data-slot-id="' . esc_attr((string) $slot['id']) . '">Book 6 Week Session</button>';
