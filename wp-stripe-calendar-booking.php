@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.2
+ * Version: 1.7.3
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -201,6 +201,13 @@ class Stripe_Calendar_Booking_Cards
         add_settings_field('currency', 'Currency', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'currency', 'placeholder' => 'usd'));
         add_settings_field('admin_email', 'Admin Notification Email', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'admin_email', 'placeholder' => get_option('admin_email')));
         add_settings_field('default_duration_minutes', 'Default Event Duration Minutes', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'default_duration_minutes', 'placeholder' => '60'));
+        add_settings_field('admin_desktop_columns', 'Admin Desktop Card Columns', array($this, 'render_select_field'), 'scbc-settings', 'scbc_main', array(
+            'key' => 'admin_desktop_columns',
+            'options' => array(
+                '2' => '2 Columns',
+                '4' => '4 Columns',
+            ),
+        ));
         add_settings_field('tier_standard_max', 'Price Tier Standard Max', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'tier_standard_max', 'placeholder' => '300'));
         add_settings_field('tier_premium_max', 'Price Tier Premium Max', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'tier_premium_max', 'placeholder' => '700'));
         add_settings_section('scbc_branding', 'Email Branding', '__return_false', 'scbc-settings');
@@ -223,6 +230,8 @@ class Stripe_Calendar_Booking_Cards
         $output['currency'] = isset($input['currency']) ? strtolower(sanitize_text_field($input['currency'])) : 'usd';
         $output['admin_email'] = isset($input['admin_email']) ? sanitize_email($input['admin_email']) : '';
         $output['default_duration_minutes'] = isset($input['default_duration_minutes']) ? max(5, absint($input['default_duration_minutes'])) : 60;
+        $admin_cols = isset($input['admin_desktop_columns']) ? absint($input['admin_desktop_columns']) : 4;
+        $output['admin_desktop_columns'] = in_array($admin_cols, array(2, 4), true) ? $admin_cols : 4;
         $standard_max = isset($input['tier_standard_max']) ? max(0, (float) $input['tier_standard_max']) : 300;
         $premium_max = isset($input['tier_premium_max']) ? max($standard_max, (float) $input['tier_premium_max']) : 700;
         $output['tier_standard_max'] = $standard_max;
@@ -273,6 +282,19 @@ class Stripe_Calendar_Booking_Cards
             esc_attr($placeholder),
             $description_html
         );
+    }
+
+    public function render_select_field($args)
+    {
+        $options = $this->get_settings();
+        $key = $args['key'];
+        $choices = isset($args['options']) && is_array($args['options']) ? $args['options'] : array();
+        $current = isset($options[$key]) ? (string) $options[$key] : '';
+        echo '<select name="' . esc_attr(self::OPTION_KEY . '[' . $key . ']') . '">';
+        foreach ($choices as $value => $label) {
+            echo '<option value="' . esc_attr((string) $value) . '"' . selected($current, (string) $value, false) . '>' . esc_html((string) $label) . '</option>';
+        }
+        echo '</select>';
     }
 
     public function render_settings_page()
@@ -352,6 +374,8 @@ class Stripe_Calendar_Booking_Cards
         $density = $this->get_admin_calendar_density();
         $settings = $this->get_settings();
         $currency = strtoupper((string) $settings['currency']);
+        $admin_cols = isset($settings['admin_desktop_columns']) && (int) $settings['admin_desktop_columns'] === 2 ? 2 : 4;
+        $cols_class = $admin_cols === 2 ? 'scbc-admin-cols-2' : 'scbc-admin-cols-4';
         $standard_max = (float) $settings['tier_standard_max'];
         $premium_max = (float) $settings['tier_premium_max'];
         $slots = $this->get_slots_for_month($month, true);
@@ -372,7 +396,7 @@ class Stripe_Calendar_Booking_Cards
             }
         }
 
-        echo '<div class="wrap scbc-admin-calendar-wrap"><h1>Booking Calendar</h1>';
+        echo '<div class="wrap scbc-admin-calendar-wrap ' . esc_attr($cols_class) . '"><h1>Booking Calendar</h1>';
         echo '<p><a class="button" href="' . esc_url($prev_url) . '">Previous Month</a> ';
         echo '<a class="button" href="' . esc_url($next_url) . '">Next Month</a> ';
         echo '<a class="button" href="' . esc_url(admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries')) . '">Booking Entries</a> ';
@@ -1313,13 +1337,10 @@ class Stripe_Calendar_Booking_Cards
 
     private function render_calendar_table($month, $slots_by_day, $admin_view, $density = 'detailed')
     {
-        $month_start = strtotime($month . '-01 00:00:00');
-        $days_in_month = (int) gmdate('t', $month_start);
-        $weekday_of_first = (int) gmdate('w', $month_start);
         $currency = strtoupper($this->get_settings()['currency']);
         $density_class = $density === 'compact' ? 'scbc-density-compact' : 'scbc-density-detailed';
 
-        echo '<div class="scbc-mobile-calendar ' . esc_attr($density_class) . '">';
+        echo '<div class="scbc-mobile-calendar scbc-calendar-cards-only ' . esc_attr($density_class) . '">';
         $has_mobile_slots = !empty($slots_by_day);
         $day_keys = array_keys($slots_by_day);
         sort($day_keys, SORT_STRING);
@@ -1328,9 +1349,18 @@ class Stripe_Calendar_Booking_Cards
             if (empty($day_slots)) {
                 continue;
             }
+            usort($day_slots, function ($a, $b) {
+                $at = isset($a['timestamp']) ? (int) $a['timestamp'] : 0;
+                $bt = isset($b['timestamp']) ? (int) $b['timestamp'] : 0;
+                return $at <=> $bt;
+            });
+            $day_total = 0.0;
+            foreach ($day_slots as $slot) {
+                $day_total += isset($slot['price']) ? (float) $slot['price'] : 0.0;
+            }
             $date_ts = strtotime($date_key . ' 00:00:00');
             echo '<article class="scbc-day-card">';
-            echo '<header class="scbc-day-card-head"><h4>' . esc_html(wp_date('D, M j', (int) $date_ts)) . '</h4><span>' . esc_html((string) count($day_slots)) . ' slot' . (count($day_slots) === 1 ? '' : 's') . '</span></header>';
+            echo '<header class="scbc-day-card-head"><h4>' . esc_html(wp_date('D, M j', (int) $date_ts)) . '</h4><span>' . esc_html((string) count($day_slots)) . ' slot' . (count($day_slots) === 1 ? '' : 's') . '<br><small class="scbc-day-total">' . esc_html($currency . ' ' . number_format_i18n($day_total, 2) . ' total') . '</small></span></header>';
             echo '<div class="scbc-day-card-slots">';
             foreach ($day_slots as $slot) {
                 echo $this->render_slot_item_markup($slot, $admin_view, $currency);
@@ -1342,45 +1372,7 @@ class Stripe_Calendar_Booking_Cards
             echo '<div class="scbc-day-empty">No schedules this month.</div>';
         }
         echo '</div>';
-
-        if ($admin_view) {
-            return;
-        }
-
-        $table_class = $admin_view ? 'scbc-calendar-table scbc-admin-table ' . $density_class : 'scbc-calendar-table';
-        echo '<table class="' . esc_attr($table_class) . '"><thead><tr>';
-        foreach (array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat') as $name) {
-            echo '<th>' . esc_html($name) . '</th>';
-        }
-        echo '</tr></thead><tbody>';
-
-        $day = 1;
-        $rows = (int) ceil(($weekday_of_first + $days_in_month) / 7);
-        for ($row = 0; $row < $rows; $row++) {
-            echo '<tr>';
-            for ($col = 0; $col < 7; $col++) {
-                $cell_index = ($row * 7) + $col;
-                if ($cell_index < $weekday_of_first || $day > $days_in_month) {
-                    echo '<td class="scbc-empty"><div class="scbc-day-surface scbc-day-surface-empty"></div></td>';
-                    continue;
-                }
-                $date_key = $month . '-' . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
-                $day_slots = isset($slots_by_day[$date_key]) ? $slots_by_day[$date_key] : array();
-                $day_count = count($day_slots);
-                echo '<td class="scbc-day-cell"><div class="scbc-day-surface"><div class="scbc-day-header"><div class="scbc-day-number">' . esc_html((string) $day) . '</div><div class="scbc-day-count">' . esc_html((string) $day_count) . ' slot' . ($day_count === 1 ? '' : 's') . '</div></div>';
-                if ($admin_view && $day_count === 0) {
-                    echo '<div class="scbc-day-empty">No sessions</div>';
-                }
-                echo '<div class="scbc-day-slot-list">';
-                foreach ($day_slots as $slot) {
-                    echo $this->render_slot_item_markup($slot, $admin_view, $currency);
-                }
-                echo '</div></div></td>';
-                $day++;
-            }
-            echo '</tr>';
-        }
-        echo '</tbody></table>';
+        return;
     }
 
     private function render_slot_item_markup($slot, $admin_view, $currency)
@@ -2552,6 +2544,7 @@ class Stripe_Calendar_Booking_Cards
             'currency' => 'usd',
             'admin_email' => '',
             'default_duration_minutes' => 60,
+            'admin_desktop_columns' => 4,
             'tier_standard_max' => 300,
             'tier_premium_max' => 700,
             'reminder_subject' => 'Reminder 6 Week Mentorship session in 24 hours',

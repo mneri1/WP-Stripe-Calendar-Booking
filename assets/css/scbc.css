@@ -54,6 +54,12 @@
 .scbc-day-card-head span {
     font-size: 11px;
     color: #475569;
+    text-align: right;
+}
+
+.scbc-day-total {
+    font-size: 10px;
+    color: #64748b;
 }
 
 .scbc-calendar-table {
@@ -651,6 +657,12 @@ body.scbc-modal-open {
         display: none;
     }
 
+    .scbc-mobile-calendar.scbc-calendar-cards-only {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
     .scbc-calendar-table {
         display: table;
         width: 100%;
@@ -783,13 +795,21 @@ body.scbc-modal-open {
 }
 
 @media (min-width: 1200px) {
-    .scbc-admin-calendar-wrap .scbc-mobile-calendar {
+    .scbc-admin-calendar-wrap.scbc-admin-cols-4 .scbc-mobile-calendar {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .scbc-admin-calendar-wrap.scbc-admin-cols-2 .scbc-mobile-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (min-width: 980px) {
-    .scbc-admin-calendar-wrap .scbc-mobile-calendar {
+    .scbc-admin-calendar-wrap.scbc-admin-cols-4 .scbc-mobile-calendar {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .scbc-admin-calendar-wrap.scbc-admin-cols-2 .scbc-mobile-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
