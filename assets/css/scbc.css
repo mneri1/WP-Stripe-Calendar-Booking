@@ -787,3 +787,9 @@ body.scbc-modal-open {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
+
+@media (min-width: 980px) {
+    .scbc-admin-calendar-wrap .scbc-mobile-calendar {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}

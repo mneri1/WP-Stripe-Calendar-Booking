@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.1
+ * Version: 1.7.2
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -846,9 +846,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.1');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.2');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.1', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.2', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -864,7 +864,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.1');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.2');
     }
 
     public function render_shortcode()
@@ -1320,32 +1320,32 @@ class Stripe_Calendar_Booking_Cards
         $density_class = $density === 'compact' ? 'scbc-density-compact' : 'scbc-density-detailed';
 
         echo '<div class="scbc-mobile-calendar ' . esc_attr($density_class) . '">';
-        $has_mobile_slots = false;
-        for ($day = 1; $day <= $days_in_month; $day++) {
-            $date_key = $month . '-' . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
+        $has_mobile_slots = !empty($slots_by_day);
+        $day_keys = array_keys($slots_by_day);
+        sort($day_keys, SORT_STRING);
+        foreach ($day_keys as $date_key) {
             $day_slots = isset($slots_by_day[$date_key]) ? $slots_by_day[$date_key] : array();
-            if (!$admin_view && empty($day_slots)) {
+            if (empty($day_slots)) {
                 continue;
             }
-            $has_mobile_slots = $has_mobile_slots || !empty($day_slots);
             $date_ts = strtotime($date_key . ' 00:00:00');
             echo '<article class="scbc-day-card">';
             echo '<header class="scbc-day-card-head"><h4>' . esc_html(wp_date('D, M j', (int) $date_ts)) . '</h4><span>' . esc_html((string) count($day_slots)) . ' slot' . (count($day_slots) === 1 ? '' : 's') . '</span></header>';
-            if (empty($day_slots)) {
-                echo '<div class="scbc-day-empty">No sessions</div>';
-            } else {
-                echo '<div class="scbc-day-card-slots">';
-                foreach ($day_slots as $slot) {
-                    echo $this->render_slot_item_markup($slot, $admin_view, $currency);
-                }
-                echo '</div>';
+            echo '<div class="scbc-day-card-slots">';
+            foreach ($day_slots as $slot) {
+                echo $this->render_slot_item_markup($slot, $admin_view, $currency);
             }
+            echo '</div>';
             echo '</article>';
         }
-        if (!$has_mobile_slots && !$admin_view) {
+        if (!$has_mobile_slots) {
             echo '<div class="scbc-day-empty">No schedules this month.</div>';
         }
         echo '</div>';
+
+        if ($admin_view) {
+            return;
+        }
 
         $table_class = $admin_view ? 'scbc-calendar-table scbc-admin-table ' . $density_class : 'scbc-calendar-table';
         echo '<table class="' . esc_attr($table_class) . '"><thead><tr>';
