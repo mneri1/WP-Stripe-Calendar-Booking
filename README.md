@@ -15,14 +15,14 @@ WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flo
 - [readme.txt](readme.txt)
 
 ## Table Of Contents
-- [Maintainer](#maintainer)
-- [Website](#website)
-- [Support](#support)
-- [Core Features](#core-features)
-- [Quick Start](#quick-start)
-- [Shortcodes](#shortcodes)
-- [Admin Menu Paths](#admin-menu-paths)
-- [Documentation](#documentation)
+1. [Maintainer](#maintainer): owner details.
+2. [Website](#website): main business site.
+3. [Support](#support): contact email.
+4. [Core Features](#core-features): capability summary.
+5. [Quick Start](#quick-start): setup in minutes.
+6. [Shortcodes](#shortcodes): page embed codes.
+7. [Admin Menu Paths](#admin-menu-paths): where to click in admin.
+8. [Documentation](#documentation): full guides and references.
 
 ## Maintainer
 - Mik Neri

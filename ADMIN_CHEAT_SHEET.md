@@ -9,12 +9,12 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [Quick Menu Paths](#quick-menu-paths)
-2. [Daily Quick Actions](#daily-quick-actions)
-3. [When Adding New Slots](#when-adding-new-slots)
-4. [If A Client Says Booking Failed](#if-a-client-says-booking-failed)
-5. [If Payment Was Made But Not Reflected](#if-payment-was-made-but-not-reflected)
-6. [Weekly Maintenance](#weekly-maintenance)
+1. [Quick Menu Paths](#quick-menu-paths): fastest admin navigation.
+2. [Daily Quick Actions](#daily-quick-actions): daily checks.
+3. [When Adding New Slots](#when-adding-new-slots): slot creation routine.
+4. [If A Client Says Booking Failed](#if-a-client-says-booking-failed): first response steps.
+5. [If Payment Was Made But Not Reflected](#if-payment-was-made-but-not-reflected): payment mismatch flow.
+6. [Weekly Maintenance](#weekly-maintenance): recurring upkeep.
 
 ## Quick Menu Paths
 1. `Settings > Stripe Booking`

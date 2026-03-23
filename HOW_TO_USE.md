@@ -9,21 +9,21 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [Made For](#made-for)
-2. [Maintainer](#maintainer)
-3. [Support](#support)
-4. [What This Plugin Does](#what-this-plugin-does)
-5. [Quick Start Checklist](#quick-start-checklist)
-6. [New Additions Included](#new-additions-included)
-7. [Shortcodes](#shortcodes)
-8. [Step By Step Setup Guide](#step-by-step-setup-guide)
-9. [First Test Booking](#first-test-booking)
-10. [Screenshot Guide](#screenshot-guide)
-11. [How Client Booking Works](#how-client-booking-works)
-12. [Admin Pages You Can Use](#admin-pages-you-can-use)
-13. [Activity Logs Explained Simply](#activity-logs-explained-simply)
-14. [Important Program Rule](#important-program-rule)
-15. [Troubleshooting](#troubleshooting)
+1. [Made For](#made-for): project client and site.
+2. [Maintainer](#maintainer): plugin owner details.
+3. [Support](#support): help contact.
+4. [What This Plugin Does](#what-this-plugin-does): plain language overview.
+5. [Quick Start Checklist](#quick-start-checklist): fast launch steps.
+6. [New Additions Included](#new-additions-included): latest improvements.
+7. [Shortcodes](#shortcodes): embed codes.
+8. [Step By Step Setup Guide](#step-by-step-setup-guide): full setup flow.
+9. [First Test Booking](#first-test-booking): first end to end test.
+10. [Screenshot Guide](#screenshot-guide): capture plan for handoff.
+11. [How Client Booking Works](#how-client-booking-works): user journey.
+12. [Admin Pages You Can Use](#admin-pages-you-can-use): admin tools map.
+13. [Activity Logs Explained Simply](#activity-logs-explained-simply): logging basics.
+14. [Important Program Rule](#important-program-rule): session cap rule.
+15. [Troubleshooting](#troubleshooting): quick fixes.
 
 ## Made For
 Vibe Connection Lounge  

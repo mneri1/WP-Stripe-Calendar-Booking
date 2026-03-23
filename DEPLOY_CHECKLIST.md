@@ -9,11 +9,11 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [Pre Deploy](#pre-deploy)
-2. [Functional Smoke Test](#functional-smoke-test)
-3. [Admin Verification](#admin-verification)
-4. [Email Verification](#email-verification)
-5. [Final Release Steps](#final-release-steps)
+1. [Pre Deploy](#pre-deploy): prerequisites before publish.
+2. [Functional Smoke Test](#functional-smoke-test): booking flow checks.
+3. [Admin Verification](#admin-verification): dashboard and logs checks.
+4. [Email Verification](#email-verification): message delivery checks.
+5. [Final Release Steps](#final-release-steps): release completion flow.
 
 Use this checklist every time before pushing live.
 

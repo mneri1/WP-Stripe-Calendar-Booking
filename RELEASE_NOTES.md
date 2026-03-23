@@ -9,16 +9,16 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [1.7.1](#171)
-2. [1.7.0](#170)
-3. [1.6.1](#161)
-4. [1.6.0](#160)
-5. [1.5.0](#150)
-6. [1.4.0](#140)
-7. [1.3.0](#130)
-8. [1.2.0](#120)
-9. [1.1.0](#110)
-10. [1.0.0](#100)
+1. [1.7.1](#171): daily counters and log retention.
+2. [1.7.0](#170): full activity logging release.
+3. [1.6.1](#161): settings preview polish.
+4. [1.6.0](#160): preview and fade refinements.
+5. [1.5.0](#150): skeleton load and editable modal copy.
+6. [1.4.0](#140): frontend cards and time picker redesign.
+7. [1.3.0](#130): six session workflow expansion.
+8. [1.2.0](#120): entries page and iCal.
+9. [1.1.0](#110): calendar and webhook baseline.
+10. [1.0.0](#100): initial release.
 
 ## 1.7.1
 1. Added Total Logs Today counter.
