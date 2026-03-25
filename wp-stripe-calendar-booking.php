@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.4
+ * Version: 1.7.5
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -40,7 +40,6 @@ class Stripe_Calendar_Booking_Cards
         add_action('wp_ajax_nopriv_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
         add_action('template_redirect', array($this, 'handle_checkout_return'));
         add_action('template_redirect', array($this, 'handle_ics_download'));
-        add_action('rest_api_init', array($this, 'register_webhook_route'));
         add_action('init', array($this, 'ensure_reminder_cron'));
         add_action('scbc_hourly_reminder_event', array($this, 'process_scheduled_reminders'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
@@ -197,7 +196,6 @@ class Stripe_Calendar_Booking_Cards
         add_settings_section('scbc_main', 'Stripe Configuration', '__return_false', 'scbc-settings');
         add_settings_field('publishable_key', 'Stripe Publishable Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'publishable_key', 'placeholder' => 'pk_live_or_test'));
         add_settings_field('secret_key', 'Stripe Secret Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'secret_key', 'placeholder' => 'sk_live_or_test'));
-        add_settings_field('webhook_secret', 'Stripe Webhook Secret', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'webhook_secret', 'placeholder' => 'whsec_xxx'));
         add_settings_field('currency', 'Currency', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'currency', 'placeholder' => 'usd'));
         add_settings_field('admin_email', 'Admin Notification Email', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'admin_email', 'placeholder' => get_option('admin_email')));
         add_settings_field('default_duration_minutes', 'Default Event Duration Minutes', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'default_duration_minutes', 'placeholder' => '60'));
@@ -226,7 +224,6 @@ class Stripe_Calendar_Booking_Cards
         $output = array();
         $output['publishable_key'] = isset($input['publishable_key']) ? sanitize_text_field($input['publishable_key']) : '';
         $output['secret_key'] = isset($input['secret_key']) ? sanitize_text_field($input['secret_key']) : '';
-        $output['webhook_secret'] = isset($input['webhook_secret']) ? sanitize_text_field($input['webhook_secret']) : '';
         $output['currency'] = isset($input['currency']) ? strtolower(sanitize_text_field($input['currency'])) : 'usd';
         $output['admin_email'] = isset($input['admin_email']) ? sanitize_email($input['admin_email']) : '';
         $output['default_duration_minutes'] = isset($input['default_duration_minutes']) ? max(5, absint($input['default_duration_minutes'])) : 60;
@@ -328,7 +325,6 @@ class Stripe_Calendar_Booking_Cards
         echo '</div>';
         echo '<p>Use shortcode <code>[stripe_booking_calendar]</code> on any page to show booking schedules.</p>';
         echo '<p>Client portal shortcode: <code>[scbc_client_portal]</code></p>';
-        echo '<p><strong>Webhook URL:</strong> <code>' . esc_html(rest_url('scbc/v1/stripe-webhook')) . '</code></p>';
         echo '<form method="post" action="options.php">';
         settings_fields(self::OPTION_KEY);
         do_settings_sections('scbc-settings');
@@ -1556,8 +1552,11 @@ class Stripe_Calendar_Booking_Cards
             $this->redirect_with_notice('cancel');
         }
         if ($this->is_session_already_processed($session_id)) {
-            $this->log_event('checkout_return_already_processed', 'Checkout return session already processed.', array('slot_id' => $slot_id, 'session_id' => $session_id));
-            $this->redirect_with_notice('success', array('scbc_slot' => $slot_id, 'scbc_session' => $session_id));
+            $entry = $this->get_booking_entry_by_session($session_id);
+            $email = (is_array($entry) && !empty($entry['customer_email'])) ? sanitize_email((string) $entry['customer_email']) : '';
+            $this->log_event('checkout_return_already_processed', 'Checkout return session already processed.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'customer_email' => $email));
+            wp_safe_redirect($this->build_success_redirect_url($slot_id, $email));
+            exit;
         }
 
         $settings = $this->get_settings();
@@ -1580,107 +1579,9 @@ class Stripe_Calendar_Booking_Cards
 
         $this->finalize_booking($slot_id, $session_data, 'success_redirect');
         $success_email = isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : '';
-        $extra = array('scbc_slot' => $slot_id, 'scbc_session' => $session_id);
-        if (!empty($success_email)) {
-            $extra['scbc_email'] = $success_email;
-        }
         $this->log_event('checkout_return_success', 'Checkout return finalized booking.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'customer_email' => $success_email));
-        $this->redirect_with_notice('success', $extra);
-    }
-
-    public function register_webhook_route()
-    {
-        register_rest_route('scbc/v1', '/stripe-webhook', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'handle_webhook_request'),
-            'permission_callback' => '__return_true',
-        ));
-    }
-
-    public function handle_webhook_request(WP_REST_Request $request)
-    {
-        $settings = $this->get_settings();
-        if (empty($settings['webhook_secret'])) {
-            $this->log_event('webhook_failed', 'Webhook secret is not configured.', array(), 'error');
-            return new WP_REST_Response(array('error' => 'Webhook secret is not configured.'), 400);
-        }
-
-        $payload = $request->get_body();
-        $signature = $request->get_header('stripe-signature');
-        if (!$this->verify_stripe_signature($payload, $signature, $settings['webhook_secret'])) {
-            $this->log_event('webhook_failed', 'Webhook signature verification failed.', array('user_ip' => $this->get_request_ip()), 'warning');
-            return new WP_REST_Response(array('error' => 'Invalid signature.'), 400);
-        }
-
-        $event = json_decode($payload, true);
-        if (!is_array($event) || empty($event['id'])) {
-            $this->log_event('webhook_failed', 'Webhook payload is invalid.', array(), 'warning');
-            return new WP_REST_Response(array('error' => 'Invalid event payload.'), 400);
-        }
-        if ($this->is_event_already_processed($event['id'])) {
-            $this->log_event('webhook_skipped', 'Webhook event already processed.', array('event_id' => (string) $event['id']));
-            return new WP_REST_Response(array('status' => 'already_processed'), 200);
-        }
-
-        $event_type = isset($event['type']) ? $event['type'] : '';
-        $this->log_event('webhook_received', 'Webhook event received.', array('event_id' => (string) $event['id'], 'event_type' => (string) $event_type));
-        if ($event_type === 'checkout.session.completed' || $event_type === 'checkout.session.async_payment_succeeded') {
-            $session = isset($event['data']['object']) ? $event['data']['object'] : array();
-            $slot_id = isset($session['metadata']['slot_id']) ? absint($session['metadata']['slot_id']) : 0;
-            if ($slot_id > 0) {
-                $this->finalize_booking($slot_id, $session, 'webhook');
-            }
-        }
-
-        $this->mark_event_processed($event['id']);
-        $this->log_event('webhook_processed', 'Webhook event processed.', array('event_id' => (string) $event['id'], 'event_type' => (string) $event_type));
-        return new WP_REST_Response(array('status' => 'ok'), 200);
-    }
-
-    private function verify_stripe_signature($payload, $signature_header, $secret)
-    {
-        if (empty($payload) || empty($signature_header) || empty($secret)) {
-            return false;
-        }
-
-        $timestamp = '';
-        $signatures = array();
-        foreach (explode(',', $signature_header) as $part) {
-            $kv = explode('=', trim($part), 2);
-            if (count($kv) !== 2) {
-                continue;
-            }
-            if ($kv[0] === 't') {
-                $timestamp = $kv[1];
-            }
-            if ($kv[0] === 'v1') {
-                $signatures[] = $kv[1];
-            }
-        }
-        if (empty($timestamp) || empty($signatures)) {
-            return false;
-        }
-        if (abs(time() - (int) $timestamp) > 300) {
-            return false;
-        }
-
-        $expected = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
-        foreach ($signatures as $signature) {
-            if (hash_equals($expected, $signature)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private function is_event_already_processed($event_id)
-    {
-        return (bool) get_transient('scbc_evt_' . md5($event_id));
-    }
-
-    private function mark_event_processed($event_id)
-    {
-        set_transient('scbc_evt_' . md5($event_id), 1, DAY_IN_SECONDS * 7);
+        wp_safe_redirect($this->build_success_redirect_url($slot_id, $success_email));
+        exit;
     }
 
     private function fetch_stripe_session($session_id, $secret_key)
@@ -2540,13 +2441,37 @@ class Stripe_Calendar_Booking_Cards
         exit;
     }
 
+    private function build_success_redirect_url($slot_id, $customer_email = '')
+    {
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+        $current_url = $request_uri ? home_url($request_uri) : home_url('/');
+        $clean_url = remove_query_arg(array('scbc_stripe_success', 'slot_id', 'session_id', 'scbc_booking', 'scbc_slot', 'scbc_session', 'scbc_email', 'customer_email', 'sched'), $current_url);
+
+        $timezone = $this->get_slot_timezone($slot_id);
+        $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
+        $start_ts = $this->get_slot_timestamp($start_raw, $timezone);
+        $sched = '';
+        if ($start_ts > 0) {
+            $sched = (new DateTimeImmutable('@' . $start_ts))->setTimezone(new DateTimeZone($timezone))->format('Y-m-d');
+        }
+
+        $args = array();
+        if (!empty($customer_email)) {
+            $args['customer_email'] = sanitize_email($customer_email);
+        }
+        if (!empty($sched)) {
+            $args['sched'] = $sched;
+        }
+
+        return !empty($args) ? add_query_arg($args, $clean_url) : $clean_url;
+    }
+
     private function get_settings()
     {
         $settings = get_option(self::OPTION_KEY, array());
         return wp_parse_args($settings, array(
             'publishable_key' => '',
             'secret_key' => '',
-            'webhook_secret' => '',
             'currency' => 'usd',
             'admin_email' => '',
             'default_duration_minutes' => 60,
