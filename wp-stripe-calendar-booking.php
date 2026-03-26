@@ -50,6 +50,7 @@ class Stripe_Calendar_Booking_Cards
         add_action('init', array($this, 'ensure_reconciliation_cron'));
         add_action('scbc_hourly_reminder_event', array($this, 'process_scheduled_reminders'));
         add_action('scbc_reconcile_event', array($this, 'process_scheduled_reconciliation'));
+        add_filter('cron_schedules', array($this, 'register_custom_cron_schedules'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
         add_filter('plugin_row_meta', array($this, 'plugin_row_meta'), 10, 2);
     }
@@ -176,8 +177,23 @@ class Stripe_Calendar_Booking_Cards
         add_submenu_page('edit.php?post_type=scbc_slot', 'Settings', 'Settings', 'manage_options', 'scbc-settings', array($this, 'render_settings_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Calendar View', 'Calendar View', 'edit_posts', 'scbc-calendar-view', array($this, 'render_admin_calendar_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Booking Entries', 'Booking Entries', 'edit_posts', 'scbc-booking-entries', array($this, 'render_entries_page'));
+        add_submenu_page('edit.php?post_type=scbc_slot', 'Reconciliations', 'Reconciliations', 'edit_posts', 'scbc-reconciliations', array($this, 'render_reconciliations_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Export Bookings', 'Export Bookings', 'edit_posts', 'scbc-export-bookings', array($this, 'render_export_page'));
         add_submenu_page('edit.php?post_type=scbc_slot', 'Activity Logs', 'Activity Logs', 'manage_options', 'scbc-activity-logs', array($this, 'render_logs_page'));
+    }
+
+    public function register_custom_cron_schedules($schedules)
+    {
+        if (!is_array($schedules)) {
+            $schedules = array();
+        }
+        if (!isset($schedules['scbc_15_minutes'])) {
+            $schedules['scbc_15_minutes'] = array(
+                'interval' => 15 * MINUTE_IN_SECONDS,
+                'display' => 'Every 15 Minutes',
+            );
+        }
+        return $schedules;
     }
 
     public function plugin_action_links($links)
@@ -535,6 +551,84 @@ class Stripe_Calendar_Booking_Cards
                         'scbc_from' => $date_from,
                         'scbc_to' => $date_to,
                         'scbc_preset' => $preset,
+                    ),
+                    admin_url('edit.php')
+                );
+                echo '<a style="margin-right:8px;" href="' . esc_url($page_url) . '">' . esc_html((string) $i) . '</a>';
+            }
+            echo '</p>';
+        }
+
+        echo '</div>';
+    }
+
+    public function render_reconciliations_page()
+    {
+        if (!current_user_can('edit_posts')) {
+            return;
+        }
+
+        $search = isset($_GET['scbc_q']) ? sanitize_text_field(wp_unslash($_GET['scbc_q'])) : '';
+        $date_from = isset($_GET['scbc_from']) ? sanitize_text_field(wp_unslash($_GET['scbc_from'])) : '';
+        $date_to = isset($_GET['scbc_to']) ? sanitize_text_field(wp_unslash($_GET['scbc_to'])) : '';
+        $paged = isset($_GET['paged']) ? max(1, absint(wp_unslash($_GET['paged']))) : 1;
+        $per_page = 25;
+        $entries_page = $this->get_reconciled_entries_page($paged, $per_page, $search, $date_from, $date_to);
+        $entries = $entries_page['rows'];
+
+        echo '<div class="wrap">';
+        echo '<h1>Reconciliations</h1>';
+        echo '<p>Bookings finalized by scheduled reconciliation are listed here.</p>';
+        echo '<form method="get" style="margin:12px 0;">';
+        echo '<input type="hidden" name="post_type" value="scbc_slot">';
+        echo '<input type="hidden" name="page" value="scbc-reconciliations">';
+        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search email or session id" style="min-width:280px;"> ';
+        echo '<label style="margin-left:8px;">From <input type="date" name="scbc_from" value="' . esc_attr($date_from) . '"></label> ';
+        echo '<label>To <input type="date" name="scbc_to" value="' . esc_attr($date_to) . '"></label> ';
+        echo '<button class="button">Search</button> ';
+        echo '<a class="button button-secondary" href="' . esc_url(add_query_arg(array('post_type' => 'scbc_slot', 'page' => 'scbc-reconciliations'), admin_url('edit.php'))) . '">Clear</a>';
+        echo '</form>';
+
+        if (empty($entries)) {
+            echo '<p>No reconciled bookings found.</p>';
+            echo '</div>';
+            return;
+        }
+
+        echo '<table class="widefat striped">';
+        echo '<thead><tr>';
+        echo '<th>Reconciled At</th><th>Session ID</th><th>Slot</th><th>Customer Email</th><th>Amount</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ($entries as $entry) {
+            $slot_id = (int) $entry['slot_id'];
+            $slot_title = get_the_title($slot_id);
+            echo '<tr>';
+            echo '<td>' . esc_html((string) $entry['booked_at']) . '</td>';
+            echo '<td><code>' . esc_html((string) $entry['session_id']) . '</code></td>';
+            echo '<td>' . esc_html($slot_title . ' (#' . $slot_id . ')') . '</td>';
+            echo '<td>' . esc_html((string) $entry['customer_email']) . '</td>';
+            echo '<td>' . esc_html(strtoupper((string) $entry['currency']) . ' ' . number_format_i18n(((float) $entry['amount_total']) / 100, 2)) . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
+
+        if ($entries_page['total_pages'] > 1) {
+            echo '<p style="margin-top:14px;">';
+            for ($i = 1; $i <= $entries_page['total_pages']; $i++) {
+                if ($i === $paged) {
+                    echo '<strong style="margin-right:8px;">' . esc_html((string) $i) . '</strong>';
+                    continue;
+                }
+                $page_url = add_query_arg(
+                    array(
+                        'post_type' => 'scbc_slot',
+                        'page' => 'scbc-reconciliations',
+                        'paged' => $i,
+                        'scbc_q' => $search,
+                        'scbc_from' => $date_from,
+                        'scbc_to' => $date_to,
                     ),
                     admin_url('edit.php')
                 );
@@ -1669,14 +1763,13 @@ class Stripe_Calendar_Booking_Cards
 
     public static function deactivate()
     {
-        $timestamp = wp_next_scheduled('scbc_hourly_reminder_event');
-        if ($timestamp) {
+        while ($timestamp = wp_next_scheduled('scbc_hourly_reminder_event')) {
             wp_unschedule_event($timestamp, 'scbc_hourly_reminder_event');
         }
-        $reconcile_timestamp = wp_next_scheduled('scbc_reconcile_event');
-        if ($reconcile_timestamp) {
+        while ($reconcile_timestamp = wp_next_scheduled('scbc_reconcile_event')) {
             wp_unschedule_event($reconcile_timestamp, 'scbc_reconcile_event');
         }
+        delete_option('scbc_reconcile_schedule_version');
     }
 
     private function maybe_upgrade_schema()
@@ -1807,6 +1900,51 @@ class Stripe_Calendar_Booking_Cards
 
         $count_sql = "SELECT COUNT(*) FROM {$table}{$where_sql}";
         $total = (int) $wpdb->get_var($params ? $wpdb->prepare($count_sql, $params) : $count_sql);
+
+        $data_sql = "SELECT * FROM {$table}{$where_sql} ORDER BY booked_at DESC LIMIT %d OFFSET %d";
+        $data_params = $params;
+        $data_params[] = $safe_limit;
+        $data_params[] = $offset;
+        $rows = $wpdb->get_results($wpdb->prepare($data_sql, $data_params), ARRAY_A);
+
+        return array(
+            'rows' => is_array($rows) ? $rows : array(),
+            'total' => $total,
+            'total_pages' => max(1, (int) ceil($total / $safe_limit)),
+        );
+    }
+
+    private function get_reconciled_entries_page($page = 1, $per_page = 25, $search = '', $date_from = '', $date_to = '')
+    {
+        global $wpdb;
+        $table = $this->get_bookings_table_name();
+        $safe_page = max(1, (int) $page);
+        $safe_limit = max(1, min(5000, (int) $per_page));
+        $offset = ($safe_page - 1) * $safe_limit;
+        $search = sanitize_text_field((string) $search);
+        $date_from = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date_from) ? (string) $date_from : '';
+        $date_to = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date_to) ? (string) $date_to : '';
+
+        $where_parts = array("booking_source = %s");
+        $params = array('reconcile_cron');
+        if (!empty($search)) {
+            $where_parts[] = "(customer_email LIKE %s OR session_id LIKE %s)";
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        if (!empty($date_from)) {
+            $where_parts[] = "DATE(booked_at) >= %s";
+            $params[] = $date_from;
+        }
+        if (!empty($date_to)) {
+            $where_parts[] = "DATE(booked_at) <= %s";
+            $params[] = $date_to;
+        }
+
+        $where_sql = ' WHERE ' . implode(' AND ', $where_parts) . ' ';
+        $count_sql = "SELECT COUNT(*) FROM {$table}{$where_sql}";
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $params));
 
         $data_sql = "SELECT * FROM {$table}{$where_sql} ORDER BY booked_at DESC LIMIT %d OFFSET %d";
         $data_params = $params;
@@ -2005,7 +2143,7 @@ class Stripe_Calendar_Booking_Cards
         $table = $this->get_bookings_table_name();
         $since = gmdate('Y-m-d H:i:s', time() - DAY_IN_SECONDS);
         $count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE source = %s AND booked_at >= %s",
+            "SELECT COUNT(*) FROM {$table} WHERE booking_source = %s AND booked_at >= %s",
             'reconcile_cron',
             $since
         ));

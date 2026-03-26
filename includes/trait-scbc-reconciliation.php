@@ -7,10 +7,21 @@ trait SCBC_Reconciliation_Trait
 {
     public function ensure_reconciliation_cron()
     {
+        $version_key = 'scbc_reconcile_schedule_version';
+        $target_version = '15m_v1';
+        $installed_version = (string) get_option($version_key, '');
+
+        if ($installed_version !== $target_version) {
+            while ($timestamp = wp_next_scheduled('scbc_reconcile_event')) {
+                wp_unschedule_event($timestamp, 'scbc_reconcile_event');
+            }
+            update_option($version_key, $target_version, false);
+        }
+
         if (!wp_next_scheduled('scbc_reconcile_event')) {
-            wp_schedule_event(time() + 600, 'hourly', 'scbc_reconcile_event');
+            wp_schedule_event(time() + 300, 'scbc_15_minutes', 'scbc_reconcile_event');
             if (method_exists($this, 'log_event')) {
-                $this->log_event('reconcile_cron_scheduled', 'Reconciliation cron event was scheduled.', array());
+                $this->log_event('reconcile_cron_scheduled', 'Reconciliation cron event was scheduled every 15 minutes.', array());
             }
         }
     }
