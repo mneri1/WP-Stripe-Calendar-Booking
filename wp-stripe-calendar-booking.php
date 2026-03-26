@@ -24,7 +24,7 @@ class Stripe_Calendar_Booking_Cards
     const NONCE_ACTION = 'scbc_checkout_nonce';
     const PROGRAM_SESSIONS = 6;
     const FRONTEND_PAGE_SIZE = 12;
-    const DB_VERSION = '1.2.0';
+    const DB_VERSION = '1.3.0';
     const DOC_URL = 'https://github.com/mneri1/WP-Stripe-Calendar-Booking/blob/main/HOW_TO_USE.md';
 
     public function __construct()
@@ -685,7 +685,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<form method="get" style="margin:12px 0;">';
         echo '<input type="hidden" name="post_type" value="scbc_slot">';
         echo '<input type="hidden" name="page" value="scbc-booking-entries">';
-        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search email or session id" style="min-width:280px;"> ';
+        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search email username or session id" style="min-width:280px;"> ';
         echo '<label style="margin-left:8px;">From <input type="date" name="scbc_from" value="' . esc_attr($date_from) . '"></label> ';
         echo '<label>To <input type="date" name="scbc_to" value="' . esc_attr($date_to) . '"></label> ';
         echo '<button class="button">Search</button>';
@@ -705,7 +705,7 @@ class Stripe_Calendar_Booking_Cards
 
         echo '<table class="widefat striped">';
         echo '<thead><tr>';
-        echo '<th>Booked At</th><th>Slot</th><th>Schedule</th><th>Customer Email</th><th>Amount</th><th>Session</th><th>Source</th><th>iCal</th>';
+        echo '<th>Booked At</th><th>Slot</th><th>Schedule</th><th>User</th><th>Customer Email</th><th>Amount</th><th>Session</th><th>Source</th><th>iCal</th>';
         echo '</tr></thead><tbody>';
 
         foreach ($entries as $entry) {
@@ -727,6 +727,24 @@ class Stripe_Calendar_Booking_Cards
             echo '<td>' . esc_html((string) $entry['booked_at']) . '</td>';
             echo '<td>' . esc_html($slot_title . ' (#' . $slot_id . ')') . '</td>';
             echo '<td>' . esc_html($schedule) . '</td>';
+            $user_label = '';
+            $entry_username = isset($entry['username']) ? sanitize_user((string) $entry['username'], true) : '';
+            $entry_user_id = isset($entry['user_id']) ? absint($entry['user_id']) : 0;
+            if (!empty($entry_username)) {
+                $user_label = $entry_username;
+            } elseif ($entry_user_id > 0) {
+                $resolved = get_user_by('id', $entry_user_id);
+                if ($resolved instanceof WP_User) {
+                    $user_label = sanitize_user((string) $resolved->user_login, true);
+                }
+            }
+            if (empty($user_label) && $entry_user_id > 0) {
+                $user_label = 'user#' . (string) $entry_user_id;
+            }
+            if (empty($user_label)) {
+                $user_label = 'Guest';
+            }
+            echo '<td>' . esc_html($user_label) . '</td>';
             echo '<td>' . esc_html((string) $entry['customer_email']) . '</td>';
             echo '<td>' . esc_html(strtoupper((string) $entry['currency']) . ' ' . number_format_i18n(((float) $entry['amount_total']) / 100, 2)) . '</td>';
             echo '<td><code>' . esc_html((string) $entry['session_id']) . '</code></td>';
@@ -827,7 +845,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<form method="get" style="margin:12px 0;">';
         echo '<input type="hidden" name="post_type" value="scbc_slot">';
         echo '<input type="hidden" name="page" value="scbc-reconciliations">';
-        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search email or session id" style="min-width:280px;"> ';
+        echo '<input type="search" name="scbc_q" value="' . esc_attr($search) . '" placeholder="Search email username or session id" style="min-width:280px;"> ';
         echo '<label style="margin-left:8px;">From <input type="date" name="scbc_from" value="' . esc_attr($date_from) . '"></label> ';
         echo '<label>To <input type="date" name="scbc_to" value="' . esc_attr($date_to) . '"></label> ';
         echo '<button class="button">Search</button> ';
@@ -842,7 +860,7 @@ class Stripe_Calendar_Booking_Cards
 
         echo '<table class="widefat striped">';
         echo '<thead><tr>';
-        echo '<th>Reconciled At</th><th>Session ID</th><th>Slot</th><th>Customer Email</th><th>Amount</th>';
+        echo '<th>Reconciled At</th><th>Session ID</th><th>Slot</th><th>User</th><th>Customer Email</th><th>Amount</th>';
         echo '</tr></thead><tbody>';
 
         foreach ($entries as $entry) {
@@ -852,6 +870,18 @@ class Stripe_Calendar_Booking_Cards
             echo '<td>' . esc_html((string) $entry['booked_at']) . '</td>';
             echo '<td><code>' . esc_html((string) $entry['session_id']) . '</code></td>';
             echo '<td>' . esc_html($slot_title . ' (#' . $slot_id . ')') . '</td>';
+            $entry_username = isset($entry['username']) ? sanitize_user((string) $entry['username'], true) : '';
+            $entry_user_id = isset($entry['user_id']) ? absint($entry['user_id']) : 0;
+            if (empty($entry_username) && $entry_user_id > 0) {
+                $resolved_user = get_user_by('id', $entry_user_id);
+                if ($resolved_user instanceof WP_User) {
+                    $entry_username = sanitize_user((string) $resolved_user->user_login, true);
+                }
+            }
+            if (empty($entry_username) && $entry_user_id > 0) {
+                $entry_username = 'user#' . (string) $entry_user_id;
+            }
+            echo '<td>' . esc_html($entry_username !== '' ? $entry_username : 'Guest') . '</td>';
             echo '<td>' . esc_html((string) $entry['customer_email']) . '</td>';
             echo '<td>' . esc_html(strtoupper((string) $entry['currency']) . ' ' . number_format_i18n(((float) $entry['amount_total']) / 100, 2)) . '</td>';
             echo '</tr>';
@@ -1116,7 +1146,7 @@ class Stripe_Calendar_Booking_Cards
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename=scbc-reconciliations-' . gmdate('Ymd-His') . '.csv');
             $out = fopen('php://output', 'w');
-            fputcsv($out, array('Reconciled At', 'Session ID', 'Slot ID', 'Slot Title', 'Customer Email', 'Amount', 'Currency', 'Booking Source'));
+            fputcsv($out, array('Reconciled At', 'Session ID', 'Slot ID', 'Slot Title', 'Username', 'User ID', 'Customer Email', 'Amount', 'Currency', 'Booking Source'));
             foreach ($entries as $entry) {
                 $slot_id = (int) $entry['slot_id'];
                 fputcsv($out, array(
@@ -1124,6 +1154,8 @@ class Stripe_Calendar_Booking_Cards
                     (string) $entry['session_id'],
                     $slot_id,
                     get_the_title($slot_id),
+                    isset($entry['username']) ? (string) $entry['username'] : '',
+                    isset($entry['user_id']) ? (int) $entry['user_id'] : 0,
                     (string) $entry['customer_email'],
                     number_format(((float) $entry['amount_total']) / 100, 2, '.', ''),
                     strtoupper((string) $entry['currency']),
@@ -1162,7 +1194,7 @@ class Stripe_Calendar_Booking_Cards
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename=scbc-booking-entries-' . gmdate('Ymd-His') . '.csv');
             $out = fopen('php://output', 'w');
-            fputcsv($out, array('Booked At', 'Slot ID', 'Slot Title', 'Schedule', 'Timezone', 'Duration Minutes', 'Customer Email', 'Amount', 'Currency', 'Session ID', 'Source'));
+            fputcsv($out, array('Booked At', 'Slot ID', 'Slot Title', 'Schedule', 'Timezone', 'Duration Minutes', 'Username', 'User ID', 'Customer Email', 'Amount', 'Currency', 'Session ID', 'Source'));
             foreach ($entries as $entry) {
                 $slot_id = (int) $entry['slot_id'];
                 $timezone = $this->sanitize_timezone($entry['slot_timezone']);
@@ -1173,6 +1205,8 @@ class Stripe_Calendar_Booking_Cards
                     $this->format_slot_datetime($entry['slot_start'], $timezone, get_option('date_format') . ' ' . get_option('time_format')),
                     $timezone,
                     $this->get_slot_duration_minutes($slot_id),
+                    isset($entry['username']) ? (string) $entry['username'] : '',
+                    isset($entry['user_id']) ? (int) $entry['user_id'] : 0,
                     (string) $entry['customer_email'],
                     number_format(((float) $entry['amount_total']) / 100, 2, '.', ''),
                     strtoupper((string) $entry['currency']),
@@ -1365,13 +1399,35 @@ class Stripe_Calendar_Booking_Cards
         echo '<strong>6 Week Mentorship Program</strong> with ' . esc_html((string) self::PROGRAM_SESSIONS) . ' total sessions.';
         echo '</div>';
         $confirmed_email = $notice_email;
-        if (empty($confirmed_email) && is_user_logged_in()) {
+        $confirmed_user_id = 0;
+        $confirmed_username = '';
+        if (is_user_logged_in()) {
             $current_user = wp_get_current_user();
-            if ($current_user instanceof WP_User && !empty($current_user->user_email) && is_email($current_user->user_email)) {
-                $confirmed_email = sanitize_email($current_user->user_email);
+            if ($current_user instanceof WP_User) {
+                $confirmed_user_id = (int) $current_user->ID;
+                $confirmed_username = sanitize_user((string) $current_user->user_login, true);
+                if (empty($confirmed_email) && !empty($current_user->user_email) && is_email($current_user->user_email)) {
+                    $confirmed_email = sanitize_email($current_user->user_email);
+                }
             }
         }
-        $confirmed_entries = !empty($confirmed_email) ? $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS) : array();
+
+        $confirmed_entries = array();
+        if ($confirmed_user_id > 0) {
+            $confirmed_entries = $this->get_booking_entries_by_user_id($confirmed_user_id, self::PROGRAM_SESSIONS);
+            if (empty($confirmed_entries)) {
+                $last_checkout_email = sanitize_email((string) get_user_meta($confirmed_user_id, 'scbc_last_checkout_email', true));
+                if (!empty($last_checkout_email)) {
+                    $confirmed_entries = $this->get_booking_entries_by_email($last_checkout_email, self::PROGRAM_SESSIONS);
+                    if (empty($confirmed_email)) {
+                        $confirmed_email = $last_checkout_email;
+                    }
+                }
+            }
+        }
+        if (empty($confirmed_entries) && !empty($confirmed_email)) {
+            $confirmed_entries = $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS);
+        }
         if (!empty($confirmed_entries)) {
             $now_ts = current_time('timestamp', true);
             usort($confirmed_entries, function ($a, $b) use ($now_ts) {
@@ -1417,10 +1473,13 @@ class Stripe_Calendar_Booking_Cards
             echo '<button type="button" id="scbc-confirmed-refresh" class="scbc-confirmed-refresh">Refresh Now</button>';
             echo '</div>';
             echo '<p id="scbc-confirmed-refreshed" class="scbc-confirmed-refreshed">Last refreshed: just now</p>';
-            if (!empty($confirmed_email)) {
-                echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
+            if ($confirmed_user_id > 0 && !empty($confirmed_username)) {
+                echo '<p class="scbc-confirmed-email">Logged in as ' . esc_html($confirmed_username) . '</p>';
             }
             if (!empty($confirmed_email)) {
+                echo '<p class="scbc-confirmed-email">Booking email ' . esc_html($confirmed_email) . '</p>';
+            }
+            if (!empty($confirmed_entries) || !empty($confirmed_email)) {
                 $confirmed_used = count($confirmed_entries);
                 $confirmed_left = max(0, self::PROGRAM_SESSIONS - $confirmed_used);
                 echo '<div class="scbc-confirmed-metrics">';
@@ -1505,10 +1564,12 @@ class Stripe_Calendar_Booking_Cards
                     ),
                     home_url('/')
                 );
-                $portal_ref = !empty($confirmed_email) ? $this->create_customer_ref_token($confirmed_email, $slot_id, isset($entry['session_id']) ? (string) $entry['session_id'] : '') : '';
+                $entry_customer_email = isset($entry['customer_email']) ? sanitize_email((string) $entry['customer_email']) : '';
+                $portal_email = !empty($entry_customer_email) ? $entry_customer_email : $confirmed_email;
+                $portal_ref = !empty($portal_email) ? $this->create_customer_ref_token($portal_email, $slot_id, isset($entry['session_id']) ? (string) $entry['session_id'] : '') : '';
                 $portal_url = !empty($portal_ref)
                     ? add_query_arg('customer_ref', rawurlencode($portal_ref), home_url('/'))
-                    : add_query_arg('scbc_email', rawurlencode($confirmed_email), home_url('/'));
+                    : add_query_arg('scbc_email', rawurlencode($portal_email), home_url('/'));
                 $copy_payload = implode("\n", array(
                     'Booking: ' . (string) $title,
                     'Date: ' . (string) $date_line,
@@ -1982,7 +2043,15 @@ class Stripe_Calendar_Booking_Cards
         $html .= '<div class="scbc-slot-spots">Spots Left: ' . esc_html((string) $slot['spots_left']) . ' of ' . esc_html((string) $slot['capacity']) . '</div>';
         if ($admin_view) {
             $last_email = (string) get_post_meta((int) $slot['id'], '_scbc_customer_email', true);
+            $latest_entry = $this->get_latest_booking_entry_by_slot_id((int) $slot['id']);
+            $latest_username = '';
+            if (is_array($latest_entry) && !empty($latest_entry['username'])) {
+                $latest_username = sanitize_user((string) $latest_entry['username'], true);
+            }
             $html .= '<div class="scbc-admin-status ' . ($slot['booked'] ? 'is-booked' : 'is-open') . '">' . ($slot['booked'] ? 'Full' : 'Open') . ' ' . esc_html((string) $slot['booked_count']) . '/' . esc_html((string) $slot['capacity']) . '</div>';
+            if (!empty($latest_username)) {
+                $html .= '<div class="scbc-slot-meta">Last User: ' . esc_html($latest_username) . '</div>';
+            }
             if (!empty($last_email)) {
                 $html .= '<div class="scbc-slot-meta">Last Client: ' . esc_html($last_email) . '</div>';
             }
@@ -2002,9 +2071,21 @@ class Stripe_Calendar_Booking_Cards
         check_ajax_referer(self::NONCE_ACTION, 'nonce');
         $slot_id = isset($_POST['slot_id']) ? absint(wp_unslash($_POST['slot_id'])) : 0;
         $customer_email = isset($_POST['customer_email']) ? sanitize_email(wp_unslash($_POST['customer_email'])) : '';
+        $logged_user_id = 0;
+        $logged_username = '';
+        if (is_user_logged_in()) {
+            $current_user = wp_get_current_user();
+            if ($current_user instanceof WP_User) {
+                $logged_user_id = (int) $current_user->ID;
+                $candidate_username = !empty($current_user->user_login) ? (string) $current_user->user_login : (string) $current_user->display_name;
+                $logged_username = sanitize_user($candidate_username, true);
+            }
+        }
         $this->log_event('checkout_session_request', 'Checkout session creation requested.', array(
             'slot_id' => $slot_id,
             'customer_email' => $customer_email,
+            'user_id' => $logged_user_id,
+            'username' => $logged_username,
             'user_ip' => $this->get_request_ip(),
         ));
         if (!$slot_id || get_post_type($slot_id) !== 'scbc_slot') {
@@ -2014,6 +2095,9 @@ class Stripe_Calendar_Booking_Cards
         if (empty($customer_email) || !is_email($customer_email)) {
             $this->log_event('checkout_session_failed', 'Invalid customer email on checkout creation.', array('slot_id' => $slot_id, 'customer_email' => $customer_email), 'warning');
             wp_send_json_error(array('message' => 'A valid client email is required.'), 400);
+        }
+        if ($logged_user_id > 0) {
+            update_user_meta($logged_user_id, 'scbc_last_checkout_email', $customer_email);
         }
         $booked_total = $this->count_bookings_for_email($customer_email);
         if ($booked_total >= self::PROGRAM_SESSIONS) {
@@ -2073,6 +2157,8 @@ class Stripe_Calendar_Booking_Cards
             'metadata[slot_id]' => (string) $slot_id,
             'metadata[customer_email]' => $customer_email,
             'metadata[program]' => '6_week',
+            'metadata[user_id]' => (string) $logged_user_id,
+            'metadata[username]' => $logged_username,
         );
 
         $response = wp_remote_post('https://api.stripe.com/v1/checkout/sessions', array(
@@ -2095,7 +2181,7 @@ class Stripe_Calendar_Booking_Cards
             $this->log_event('checkout_session_failed', 'Stripe API returned error during checkout creation.', array('slot_id' => $slot_id, 'http_code' => $code, 'response' => $data), 'error');
             wp_send_json_error(array('message' => isset($data['error']['message']) ? $data['error']['message'] : 'Stripe request failed.'), 500);
         }
-        $this->log_event('checkout_session_created', 'Stripe checkout session created.', array('slot_id' => $slot_id, 'session_id' => (string) $data['id'], 'customer_email' => $customer_email));
+        $this->log_event('checkout_session_created', 'Stripe checkout session created.', array('slot_id' => $slot_id, 'session_id' => (string) $data['id'], 'customer_email' => $customer_email, 'user_id' => $logged_user_id, 'username' => $logged_username));
         wp_send_json_success(array('sessionId' => $data['id']));
     }
 
@@ -2364,6 +2450,8 @@ class Stripe_Calendar_Booking_Cards
             slot_id bigint(20) unsigned NOT NULL,
             session_id varchar(255) NOT NULL,
             customer_email varchar(255) NOT NULL DEFAULT '',
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            username varchar(191) NOT NULL DEFAULT '',
             amount_total bigint(20) unsigned NOT NULL DEFAULT 0,
             currency varchar(16) NOT NULL DEFAULT '',
             booking_source varchar(64) NOT NULL DEFAULT '',
@@ -2375,6 +2463,7 @@ class Stripe_Calendar_Booking_Cards
             PRIMARY KEY (id),
             UNIQUE KEY session_id (session_id),
             KEY slot_id (slot_id),
+            KEY user_id (user_id),
             KEY booked_at (booked_at),
             KEY reminder_24h_sent (reminder_24h_sent)
         ) {$charset_collate};";
@@ -2411,12 +2500,24 @@ class Stripe_Calendar_Booking_Cards
             return;
         }
 
+        $customer_email = isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : '';
+        if (empty($customer_email) && isset($session_data['metadata']['customer_email'])) {
+            $customer_email = sanitize_email((string) $session_data['metadata']['customer_email']);
+        }
+        $entry_user_id = isset($session_data['metadata']['user_id']) ? absint($session_data['metadata']['user_id']) : 0;
+        $entry_username = isset($session_data['metadata']['username']) ? sanitize_user((string) $session_data['metadata']['username'], true) : '';
+        if ($entry_user_id > 0 && !empty($customer_email)) {
+            update_user_meta($entry_user_id, 'scbc_last_checkout_email', $customer_email);
+        }
+
         $wpdb->insert(
             $table,
             array(
                 'slot_id' => (int) $slot_id,
                 'session_id' => $session_id,
-                'customer_email' => isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : '',
+                'customer_email' => $customer_email,
+                'user_id' => $entry_user_id,
+                'username' => $entry_username,
                 'amount_total' => isset($session_data['amount_total']) ? (int) $session_data['amount_total'] : 0,
                 'currency' => isset($session_data['currency']) ? sanitize_text_field($session_data['currency']) : '',
                 'booking_source' => sanitize_text_field($source),
@@ -2425,9 +2526,9 @@ class Stripe_Calendar_Booking_Cards
                 'reminder_24h_sent' => 0,
                 'booked_at' => current_time('mysql'),
             ),
-            array('%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s')
+            array('%d', '%s', '%s', '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s')
         );
-        $this->log_event('booking_entry_inserted', 'Booking entry inserted.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id, 'source' => sanitize_text_field($source)));
+        $this->log_event('booking_entry_inserted', 'Booking entry inserted.', array('slot_id' => (int) $slot_id, 'session_id' => $session_id, 'source' => sanitize_text_field($source), 'customer_email' => $customer_email, 'user_id' => $entry_user_id, 'username' => $entry_username));
     }
 
     private function get_booking_entries($limit = 200)
@@ -2450,8 +2551,9 @@ class Stripe_Calendar_Booking_Cards
         $where_parts = array();
         $params = array();
         if (!empty($search)) {
-            $where_parts[] = "(customer_email LIKE %s OR session_id LIKE %s)";
+            $where_parts[] = "(customer_email LIKE %s OR session_id LIKE %s OR username LIKE %s)";
             $like = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $like;
             $params[] = $like;
             $params[] = $like;
         }
@@ -2499,8 +2601,9 @@ class Stripe_Calendar_Booking_Cards
         $where_parts = array("booking_source = %s");
         $params = array('reconcile_cron');
         if (!empty($search)) {
-            $where_parts[] = "(customer_email LIKE %s OR session_id LIKE %s)";
+            $where_parts[] = "(customer_email LIKE %s OR session_id LIKE %s OR username LIKE %s)";
             $like = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $like;
             $params[] = $like;
             $params[] = $like;
         }
@@ -2539,6 +2642,19 @@ class Stripe_Calendar_Booking_Cards
         return is_array($row) ? $row : null;
     }
 
+    private function get_latest_booking_entry_by_slot_id($slot_id)
+    {
+        global $wpdb;
+        $safe_slot_id = absint($slot_id);
+        if ($safe_slot_id < 1) {
+            return null;
+        }
+        $table = $this->get_bookings_table_name();
+        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE slot_id = %d ORDER BY booked_at DESC, id DESC LIMIT 1", $safe_slot_id);
+        $row = $wpdb->get_row($sql, ARRAY_A);
+        return is_array($row) ? $row : null;
+    }
+
     private function get_booking_entries_by_email($email, $limit = 100)
     {
         global $wpdb;
@@ -2549,6 +2665,20 @@ class Stripe_Calendar_Booking_Cards
         $table = $this->get_bookings_table_name();
         $safe_limit = max(1, min(500, (int) $limit));
         $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE customer_email = %s ORDER BY booked_at ASC LIMIT %d", $email, $safe_limit);
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        return is_array($rows) ? $rows : array();
+    }
+
+    private function get_booking_entries_by_user_id($user_id, $limit = 100)
+    {
+        global $wpdb;
+        $safe_user_id = absint($user_id);
+        if ($safe_user_id < 1) {
+            return array();
+        }
+        $table = $this->get_bookings_table_name();
+        $safe_limit = max(1, min(500, (int) $limit));
+        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE user_id = %d ORDER BY booked_at ASC LIMIT %d", $safe_user_id, $safe_limit);
         $rows = $wpdb->get_results($sql, ARRAY_A);
         return is_array($rows) ? $rows : array();
     }
@@ -2953,6 +3083,8 @@ class Stripe_Calendar_Booking_Cards
         } elseif (isset($session_data['metadata']['customer_email'])) {
             $customer_email = sanitize_email($session_data['metadata']['customer_email']);
         }
+        $booked_user_id = isset($session_data['metadata']['user_id']) ? absint($session_data['metadata']['user_id']) : 0;
+        $booked_username = isset($session_data['metadata']['username']) ? sanitize_user((string) $session_data['metadata']['username'], true) : '';
 
         if (!empty($customer_email) && $this->count_bookings_for_email($customer_email) >= self::PROGRAM_SESSIONS) {
             if (!empty($session_id)) {
@@ -2978,6 +3110,12 @@ class Stripe_Calendar_Booking_Cards
         if (!empty($customer_email)) {
             update_post_meta($slot_id, '_scbc_customer_email', $customer_email);
         }
+        if ($booked_user_id > 0) {
+            update_post_meta($slot_id, '_scbc_customer_user_id', $booked_user_id);
+        }
+        if (!empty($booked_username)) {
+            update_post_meta($slot_id, '_scbc_customer_username', $booked_username);
+        }
 
         if (!empty($session_id)) {
             $this->mark_session_processed($session_id);
@@ -2991,6 +3129,8 @@ class Stripe_Calendar_Booking_Cards
             'session_id' => $session_id,
             'source' => sanitize_text_field($source),
             'customer_email' => $customer_email,
+            'user_id' => $booked_user_id,
+            'username' => $booked_username,
             'booked_count' => $this->get_slot_booked_count($slot_id),
             'capacity' => $this->get_slot_capacity($slot_id),
         ));
@@ -3041,13 +3181,14 @@ class Stripe_Calendar_Booking_Cards
         $amount = isset($session_data['amount_total']) ? number_format_i18n(((float) $session_data['amount_total']) / 100, 2) : '';
         $currency = isset($session_data['currency']) ? strtoupper(sanitize_text_field($session_data['currency'])) : strtoupper($settings['currency']);
         $customer_email = isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : 'Unknown';
+        $customer_username = isset($session_data['metadata']['username']) ? sanitize_user((string) $session_data['metadata']['username'], true) : '';
         $capacity = $this->get_slot_capacity($slot_id);
         $booked_count = $this->get_slot_booked_count($slot_id);
         $spots_left = max(0, $capacity - $booked_count);
         $headline = $audience === 'admin' ? 'New Booking Paid' : 'Booking Confirmed';
         $intro = $audience === 'admin' ? 'A new booking was paid on your site.' : 'Thank you. Your booking payment is confirmed.';
         $extra = $audience === 'admin'
-            ? '<p style="margin:0 0 8px;"><strong>Customer Email:</strong> ' . esc_html($customer_email) . '</p><p style="margin:0 0 8px;"><strong>Slot ID:</strong> ' . esc_html((string) $slot_id) . '</p><p style="margin:0;"><strong>Booked:</strong> ' . esc_html((string) $booked_count) . '/' . esc_html((string) $capacity) . '</p>'
+            ? '<p style="margin:0 0 8px;"><strong>Customer Email:</strong> ' . esc_html($customer_email) . '</p><p style="margin:0 0 8px;"><strong>Username:</strong> ' . esc_html($customer_username !== '' ? $customer_username : 'Guest') . '</p><p style="margin:0 0 8px;"><strong>Slot ID:</strong> ' . esc_html((string) $slot_id) . '</p><p style="margin:0;"><strong>Booked:</strong> ' . esc_html((string) $booked_count) . '/' . esc_html((string) $capacity) . '</p>'
             : '';
 
         return '<div style="font-family:Arial,sans-serif;background:#f5f7fb;padding:24px;"><div style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #dbe2ea;"><div style="background:' . esc_attr($brand_color) . ';padding:18px 22px;color:#ffffff;font-size:20px;font-weight:700;">' . esc_html($brand_name) . '</div><div style="padding:22px;color:#1f2937;"><h2 style="margin:0 0 10px;">' . esc_html($headline) . '</h2><p style="margin:0 0 16px;">' . esc_html($intro) . '</p><p style="margin:0 0 8px;"><strong>Booking:</strong> ' . esc_html($title) . '</p><p style="margin:0 0 8px;"><strong>Schedule:</strong> ' . esc_html($date . ' ' . $timezone) . '</p><p style="margin:0 0 8px;"><strong>Amount:</strong> ' . esc_html($currency . ' ' . $amount) . '</p><p style="margin:0 0 8px;"><strong>Spots Left:</strong> ' . esc_html((string) $spots_left) . '</p>' . $extra . '</div></div></div>';
