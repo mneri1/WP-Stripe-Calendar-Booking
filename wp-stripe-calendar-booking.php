@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.3
+ * Version: 1.8.4
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -363,10 +363,13 @@ class Stripe_Calendar_Booking_Cards
         $next_reconcile_text = $next_reconcile_ts
             ? wp_date('Y-m-d h:i a', $next_reconcile_ts, wp_timezone()) . ' ' . $site_timezone
             : 'Not scheduled yet';
+        $settings_url = admin_url('options-general.php?page=scbc-settings');
+        $add_slot_url = admin_url('post-new.php?post_type=scbc_slot');
+        $entries_url = admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries');
         echo '<div style="display:grid;grid-template-columns:1fr;gap:8px;">';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Stripe keys in Settings.</span></div>';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create times people can book.</span></div>';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking to confirm.</span></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Stripe keys in Settings.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create times people can book.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking to confirm.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
         echo '</div>';
         echo '<p style="margin:10px 0 0;"><strong>Next reconciliation:</strong> <code>' . esc_html($next_reconcile_text) . '</code></p>';
         echo '<p><a class="button button-primary" href="' . esc_url(admin_url('options-general.php?page=scbc-settings')) . '">Open Stripe Booking Settings</a></p>';
@@ -446,6 +449,9 @@ class Stripe_Calendar_Booking_Cards
             ? wp_date('Y-m-d h:i a', $next_reconcile_ts, wp_timezone()) . ' ' . $site_timezone
             : 'Not scheduled yet';
         $preview_slot = $this->get_next_preview_slot();
+        $settings_url = admin_url('options-general.php?page=scbc-settings');
+        $add_slot_url = admin_url('post-new.php?post_type=scbc_slot');
+        $entries_url = admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries');
         echo '<div class="wrap"><h1>Stripe Booking Settings</h1>';
         if ($saved) {
             echo '<div id="scbc-settings-toast" style="position:fixed;right:22px;bottom:22px;background:#0f172a;color:#fff;padding:11px 14px 11px 12px;border-radius:10px;box-shadow:0 10px 24px rgba(15,23,42,0.24);z-index:9999;font-weight:600;display:flex;align-items:center;gap:10px;">';
@@ -455,9 +461,9 @@ class Stripe_Calendar_Booking_Cards
             echo '<script>(function(){var t=document.getElementById("scbc-settings-toast");var b=document.getElementById("scbc-settings-toast-close");if(b&&t){b.addEventListener("click",function(){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);});}setTimeout(function(){if(t){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);}},3200);}());</script>';
         }
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0 14px;">';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Publishable Key and Secret Key so payments can work.</span></div>';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create booking slots with date time price and capacity.</span></div>';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking and check entries logs and reconciliations.</span></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Publishable Key and Secret Key so payments can work.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create booking slots with date time price and capacity.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking and check entries logs and reconciliations.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
         echo '</div>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;">';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Active Clients</strong><br>' . esc_html((string) $stats['active_clients']) . '</div>';
@@ -1169,9 +1175,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.3');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.4');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.3', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.4', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1188,7 +1194,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.3');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.4');
     }
 
     public function render_shortcode()
@@ -1310,14 +1316,15 @@ class Stripe_Calendar_Booking_Cards
         echo '<h3 id="scbc-modal-title">Booking Details</h3>';
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
         echo '<div class="scbc-modal-policy">';
-        echo '<p><strong>Session Expectations</strong></p>';
+        echo '<p><strong>Session Expectations</strong>' . $this->render_help_tip('What this session is for.', 'Example: Bring your top 3 questions for coaching.') . '</p>';
         echo '<p>' . nl2br(esc_html($session_expectations_copy)) . '</p>';
-        echo '<p><strong>Cancellation Policy</strong></p>';
+        echo '<p><strong>Cancellation Policy</strong>' . $this->render_help_tip('Rules when someone needs to cancel or move time.', 'Example: Cancel at least 24 hours before session time.') . '</p>';
         echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
         echo '</div>';
         echo '</div>';
+        $this->render_help_tip_script();
         return ob_get_clean();
     }
 
