@@ -68,6 +68,8 @@ First click: open your booking page after a successful paid booking.
 1. Look at the left side panel named `Confirmed Bookings`.
 2. If no customer email context exists and no bookings exist, this panel hides automatically.
 3. Click `Refresh Now` for an instant panel refresh.
+4. Check `Last refreshed` time beside refresh controls.
+5. `Refresh Now` also refreshes the available schedule cards on the right side.
 2. Confirm your booked card appears with status badge.
 3. Confirm `Today` cards are pinned first.
 4. Confirm section titles show:

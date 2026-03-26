@@ -578,15 +578,47 @@
         window.setInterval(refreshConfirmedTodayState, 120000);
 
         var confirmedRefreshBtn = document.getElementById('scbc-confirmed-refresh');
+        var confirmedRefreshedLabel = document.getElementById('scbc-confirmed-refreshed');
+
+        function updateConfirmedRefreshedTime() {
+            if (!confirmedRefreshedLabel) {
+                return;
+            }
+            var text = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            confirmedRefreshedLabel.textContent = 'Last refreshed: ' + text;
+        }
+
+        function getCurrentSlotsPage() {
+            var activePageBtn = paginationWrap ? paginationWrap.querySelector('.scbc-page-btn.is-active') : null;
+            if (activePageBtn) {
+                var activePage = parseInt(activePageBtn.getAttribute('data-page') || '1', 10);
+                if (!isNaN(activePage) && activePage > 0) {
+                    return activePage;
+                }
+            }
+            var loadPage = loadMoreBtn ? parseInt(loadMoreBtn.getAttribute('data-page') || '1', 10) : 1;
+            if (!isNaN(loadPage) && loadPage > 0) {
+                return loadPage;
+            }
+            return 1;
+        }
+
         if (confirmedRefreshBtn) {
             confirmedRefreshBtn.addEventListener('click', function () {
-                refreshConfirmedRelativeTimes();
-                refreshConfirmedTodayState();
-                confirmedRefreshBtn.textContent = 'Refreshed';
-                window.setTimeout(function () {
+                confirmedRefreshBtn.disabled = true;
+                confirmedRefreshBtn.textContent = 'Refreshing...';
+                var currentPage = getCurrentSlotsPage();
+                var month = monthFilter ? monthFilter.value : '';
+                loadSlots(currentPage, month, false).finally(function () {
+                    refreshConfirmedRelativeTimes();
+                    refreshConfirmedTodayState();
+                    updateConfirmedRefreshedTime();
+                    confirmedRefreshBtn.disabled = false;
                     confirmedRefreshBtn.textContent = 'Refresh Now';
-                }, 1200);
+                });
             });
         }
+
+        updateConfirmedRefreshedTime();
     });
 })();

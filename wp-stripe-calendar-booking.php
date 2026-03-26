@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.24
+ * Version: 1.8.25
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.24');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.25');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.24', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.25', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.24');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.25');
     }
 
     public function render_shortcode()
@@ -1416,6 +1416,7 @@ class Stripe_Calendar_Booking_Cards
             echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
             echo '<button type="button" id="scbc-confirmed-refresh" class="scbc-confirmed-refresh">Refresh Now</button>';
             echo '</div>';
+            echo '<p id="scbc-confirmed-refreshed" class="scbc-confirmed-refreshed">Last refreshed: just now</p>';
             if (!empty($confirmed_email)) {
                 echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
             }

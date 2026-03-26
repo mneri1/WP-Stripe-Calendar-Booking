@@ -283,6 +283,12 @@
     background: #f8fafc;
 }
 
+.scbc-confirmed-refreshed {
+    margin: 4px 0 10px;
+    color: #64748b;
+    font-size: 11px;
+}
+
 .scbc-confirmed-email {
     margin: 0 0 10px;
     color: #334155;
