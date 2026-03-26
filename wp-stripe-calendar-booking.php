@@ -1422,6 +1422,10 @@ class Stripe_Calendar_Booking_Cards
         if ($confirmed_user_id > 0) {
             $confirmed_entries = $this->get_booking_entries_by_user_id($confirmed_user_id, self::PROGRAM_SESSIONS);
             if (empty($confirmed_entries)) {
+                $this->maybe_claim_single_unassigned_booking_for_user($confirmed_user_id, $confirmed_username);
+                $confirmed_entries = $this->get_booking_entries_by_user_id($confirmed_user_id, self::PROGRAM_SESSIONS);
+            }
+            if (empty($confirmed_entries)) {
                 $candidate_emails = $this->get_user_checkout_emails($confirmed_user_id, $account_email, $notice_email);
                 if (!empty($candidate_emails)) {
                     $confirmed_entries = $this->get_booking_entries_by_emails($candidate_emails, self::PROGRAM_SESSIONS * 4);
@@ -2852,6 +2856,45 @@ class Stripe_Calendar_Booking_Cards
             }
         }
         return array_values($clean);
+    }
+
+    private function maybe_claim_single_unassigned_booking_for_user($user_id, $username = '')
+    {
+        global $wpdb;
+        $safe_user_id = absint($user_id);
+        if ($safe_user_id < 1) {
+            return 0;
+        }
+        $table = $this->get_bookings_table_name();
+        $total_rows = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+        if ($total_rows !== 1) {
+            return 0;
+        }
+        $row = $wpdb->get_row("SELECT id, customer_email FROM {$table} WHERE user_id = 0 ORDER BY booked_at DESC, id DESC LIMIT 1", ARRAY_A);
+        if (!is_array($row) || empty($row['id'])) {
+            return 0;
+        }
+        $safe_username = sanitize_user((string) $username, true);
+        $wpdb->update(
+            $table,
+            array(
+                'user_id' => $safe_user_id,
+                'username' => $safe_username,
+            ),
+            array('id' => (int) $row['id']),
+            array('%d', '%s'),
+            array('%d')
+        );
+        if (!empty($row['customer_email'])) {
+            $this->append_user_checkout_email($safe_user_id, sanitize_email((string) $row['customer_email']));
+        }
+        $this->log_event('booking_identity_backfill_single', 'Single unassigned booking was linked to logged in user.', array(
+            'entry_id' => (int) $row['id'],
+            'user_id' => $safe_user_id,
+            'username' => $safe_username,
+            'customer_email' => sanitize_email((string) $row['customer_email']),
+        ));
+        return (int) $row['id'];
     }
 
     private function count_bookings_for_email($email)
