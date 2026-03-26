@@ -310,6 +310,7 @@ class Stripe_Calendar_Booking_Cards
         $options = $this->get_settings();
         $currency = strtoupper((string) $options['currency']);
         $stats = $this->get_program_dashboard_stats();
+        $reconciled_today = $this->get_reconciled_bookings_today_count();
         $saved = isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true';
         $save_time = current_time('Y-m-d H:i:s');
         $site_timezone = wp_timezone_string();
@@ -330,6 +331,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Total Sessions Booked</strong><br>' . esc_html((string) $stats['total_sessions']) . '</div>';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Total Remaining Sessions</strong><br>' . esc_html((string) $stats['remaining_sessions']) . '</div>';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Completed Clients</strong><br>' . esc_html((string) $stats['completed_clients']) . '</div>';
+        echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Reconciled Last 24h</strong><br>' . esc_html((string) $reconciled_today) . '</div>';
         echo '</div>';
         echo '<p>Use shortcode <code>[stripe_booking_calendar]</code> on any page to show booking schedules.</p>';
         echo '<p>Client portal shortcode: <code>[scbc_client_portal]</code></p>';
@@ -1995,6 +1997,19 @@ class Stripe_Calendar_Booking_Cards
             'total_sessions' => $total,
             'remaining_sessions' => $remaining,
         );
+    }
+
+    private function get_reconciled_bookings_today_count()
+    {
+        global $wpdb;
+        $table = $this->get_bookings_table_name();
+        $since = gmdate('Y-m-d H:i:s', time() - DAY_IN_SECONDS);
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE source = %s AND booked_at >= %s",
+            'reconcile_cron',
+            $since
+        ));
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     private function render_reminder_template($type, $tokens)

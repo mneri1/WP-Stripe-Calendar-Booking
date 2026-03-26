@@ -48,15 +48,15 @@ Today Error
 ## If A Client Says Booking Failed
 1. Open Activity Logs and search by email.
 2. Check event level and message.
-3. Confirm Stripe keys and webhook in Settings.
+3. Confirm Stripe keys in Settings.
 4. Confirm slot still has spots left.
 5. Confirm client email has not reached 6 sessions.
 
 ## If Payment Was Made But Not Reflected
 1. Open Activity Logs and filter `warning` and `error`.
-2. Search for webhook events.
-3. Confirm webhook secret value in settings.
-4. Confirm booking row in Booking Entries.
+2. Search for `reconcile` and `checkout_return` events.
+3. Confirm booking row in Booking Entries.
+4. Check `Reconciled Last 24h` card in Settings.
 5. If missing, run one test payment again in Stripe test mode and recheck logs.
 
 ## Weekly Maintenance

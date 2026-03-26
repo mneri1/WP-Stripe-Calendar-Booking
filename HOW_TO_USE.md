@@ -50,7 +50,7 @@ Use this super fast checklist first.
 
 1. Install and activate plugin.
 2. Open Settings then Stripe Booking.
-3. Add Stripe Publishable Key, Secret Key, and Webhook Secret.
+3. Add Stripe Publishable Key and Secret Key.
 4. Create at least one booking slot.
 5. Add `[stripe_booking_calendar]` to your booking page.
 6. Test one booking from frontend.
@@ -102,9 +102,8 @@ Think of this like building with blocks.
 ### Step 3 Add Stripe Keys
 1. Paste Stripe Publishable Key.
 2. Paste Stripe Secret Key.
-3. Paste Stripe Webhook Secret.
-4. Set currency like `usd`.
-5. Set admin notification email.
+3. Set currency like `usd`.
+4. Set admin notification email.
 
 ### Step 4 Set Program Details
 1. Set Default Event Duration Minutes.
@@ -129,14 +128,12 @@ Think of this like building with blocks.
 3. Fill Cancellation Policy Copy.
 4. Look at Modal Policy Preview below settings form.
 
-### Step 7 Add Stripe Webhook
-1. In Stripe create a webhook endpoint.
-2. Copy webhook URL from plugin settings.
-3. Paste in Stripe endpoint URL.
-4. Listen for checkout session completed events.
-5. Save webhook.
-6. Copy webhook signing secret from Stripe.
-7. Paste it into plugin settings Webhook Secret.
+### Step 7 Understand Payment Confirmation
+1. No Stripe webhook setup is required.
+2. Booking is confirmed on Stripe return to site.
+3. If a user pays but does not return, reconciliation cron finalizes it later.
+4. Success redirect uses secure params like:
+`?customer_ref=TOKEN&sched=2026-03-12`
 
 ### Step 8 Create Booking Slots
 1. Go to Booking Slots.
@@ -190,7 +187,7 @@ Capture: Plugin row showing Stripe Calendar Booking Cards is Active.
 
 2. Stripe settings screen  
 Path: `WP Admin > Settings > Stripe Booking`  
-Capture: Stripe keys fields and webhook URL.
+Capture: Stripe keys fields and settings save confirmation.
 
 3. Frontend modal copy settings  
 Path: `WP Admin > Settings > Stripe Booking`  
@@ -273,7 +270,7 @@ Logged examples:
 2. Settings saved.
 3. Checkout request started.
 4. Stripe response success or fail.
-5. Webhook received and processed.
+5. Reconciliation run checked and finalized missing paid sessions.
 6. Booking finalized.
 7. Emails sent or failed.
 8. Reminder sent.
@@ -285,10 +282,10 @@ Each client email can book up to 6 sessions total.
 
 ## Troubleshooting
 1. Checkout not starting  
-Check Stripe keys and webhook secret.
+Check Stripe keys.
 
 2. Booking not marked paid  
-Check webhook in Stripe and webhook logs.
+Check return URL flow and reconciliation logs.
 
 3. Client cannot book  
 Check if email already used 6 sessions.

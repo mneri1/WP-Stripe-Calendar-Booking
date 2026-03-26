@@ -20,10 +20,8 @@ Use this checklist every time before pushing live.
 ## Pre Deploy
 1. Confirm plugin version in `wp-stripe-calendar-booking.php`.
 2. Confirm Stripe keys are set in live settings.
-3. Confirm webhook URL exists in Stripe and points to:
-`/wp-json/scbc/v1/stripe-webhook`
-4. Confirm webhook secret in plugin settings matches Stripe.
-5. Confirm at least one future slot exists.
+3. Confirm at least one future slot exists.
+4. Confirm reconciliation cron is active.
 
 ## Functional Smoke Test
 1. Open booking page with `[stripe_booking_calendar]`.
@@ -32,7 +30,7 @@ Use this checklist every time before pushing live.
 4. Click a card and confirm modal opens.
 5. Confirm modal policy text is correct.
 6. Continue to Stripe checkout and complete one test payment.
-7. Confirm success notice appears.
+7. Confirm success URL includes `customer_ref` and `sched`.
 8. Confirm iCal download works.
 
 ## Admin Verification

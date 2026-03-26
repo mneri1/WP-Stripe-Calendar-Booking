@@ -2,8 +2,8 @@
 
 WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flow with Stripe checkout, reminders, iCal, and full activity logs.
 
-![Plugin Version](https://img.shields.io/badge/plugin-1.7.4-0ea5e9)
-![Stable Tag](https://img.shields.io/badge/stable-1.7.4-2563eb)
+![Plugin Version](https://img.shields.io/badge/plugin-1.8.0-0ea5e9)
+![Stable Tag](https://img.shields.io/badge/stable-1.8.0-2563eb)
 ![PHP](https://img.shields.io/badge/php-%3E%3D7.4-334155)
 
 ## Documentation Navigation
@@ -39,7 +39,8 @@ WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flo
 - Frontend month grouped booking cards
 - Month filter plus numbered pagination plus load more
 - Booking details modal before payment
-- Stripe Checkout with webhook verification
+- Stripe Checkout return verification with reconciliation cron fallback
+- Success redirect using secure `customer_ref` plus `sched` params
 - Booking entries table with filters and CSV export
 - Client portal shortcode `[scbc_client_portal]`
 - Timezone aware iCal with VTIMEZONE blocks
@@ -59,7 +60,7 @@ WordPress plugin for the Vibe Connection Lounge 6 session mentorship booking flo
 1. Upload `wp-stripe-calendar-booking` to `wp-content/plugins`.
 2. Activate plugin.
 3. Go to `Settings > Stripe Booking`.
-4. Add Stripe Publishable Key, Secret Key, and Webhook Secret.
+4. Add Stripe Publishable Key and Secret Key.
 5. Create booking slots in `Booking Slots`.
 6. Add `[stripe_booking_calendar]` to booking page.
 7. Run one test booking in Stripe test mode.

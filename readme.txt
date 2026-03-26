@@ -4,7 +4,7 @@ Tags: booking, stripe, calendar, mentorship, appointments
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.7.4
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,8 @@ Main features:
 - Frontend booking cards grouped by month
 - Month filter, numbered pagination, and load more controls
 - Booking detail modal before Stripe checkout
-- Stripe checkout with webhook verification
+- Stripe checkout return verification with reconciliation cron fallback
+- Success redirect with secure customer ref token and schedule date
 - 6 session cap per client email
 - Client portal shortcode with session usage and iCal links
 - Booking entries admin page with filters and pagination
@@ -47,7 +48,7 @@ Documentation files in plugin package:
 1. Upload plugin folder to `/wp-content/plugins/`.
 2. Activate plugin.
 3. Open Settings then Stripe Booking.
-4. Add Stripe keys and webhook secret.
+4. Add Stripe publishable key and secret key.
 5. Create booking slots under Booking Slots.
 6. Add `[stripe_booking_calendar]` to booking page.
 7. Optional add `[scbc_client_portal]` to a portal page.
@@ -67,6 +68,13 @@ Yes. Reminder templates and frontend modal policy text are editable in settings.
 Yes. It has an Activity Logs page with filters, search, and daily counters.
 
 == Changelog ==
+
+= 1.8.0 =
+- Removed webhook dependency from booking confirmation flow
+- Added hourly reconciliation cron for missed return finalization
+- Added secure customer ref token in success redirect params
+- Added settings card for reconciled bookings in last 24 hours
+- Split token and reconciliation logic into separate include traits
 
 = 1.7.4 =
 - Added earliest time badge in day card header
