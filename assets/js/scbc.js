@@ -28,6 +28,7 @@
         var modalClose = document.getElementById('scbc-modal-close');
         var modalDetails = document.getElementById('scbc-modal-details');
         var modalBookBtn = document.getElementById('scbc-modal-book-btn');
+        var modalRetryBtn = document.getElementById('scbc-modal-retry-btn');
         var activeSlotId = '';
 
         function buildSkeletonMarkup(count) {
@@ -179,6 +180,11 @@
                 modalBookBtn.disabled = false;
                 modalBookBtn.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
             }
+            if (modalRetryBtn) {
+                modalRetryBtn.setAttribute('data-slot-id', '');
+                modalRetryBtn.hidden = true;
+                modalRetryBtn.disabled = false;
+            }
         }
 
         function openModal(button) {
@@ -191,6 +197,11 @@
             }
             activeSlotId = slotId;
             modalBookBtn.setAttribute('data-slot-id', slotId);
+            if (modalRetryBtn) {
+                modalRetryBtn.setAttribute('data-slot-id', slotId);
+                modalRetryBtn.hidden = true;
+                modalRetryBtn.disabled = false;
+            }
             modalDetails.innerHTML =
                 '<p><strong>' + escapeHtml(button.getAttribute('data-slot-title') || '') + '</strong></p>' +
                 '<p><strong>Date:</strong> ' + escapeHtml(button.getAttribute('data-slot-date') || '') + '</p>' +
@@ -251,6 +262,10 @@
                     alert(help ? (base + '\n\n' + help) : base);
                     actionButton.disabled = false;
                     actionButton.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
+                    if (modalRetryBtn) {
+                        modalRetryBtn.hidden = false;
+                        modalRetryBtn.disabled = false;
+                    }
                 });
         }
 
@@ -268,6 +283,13 @@
             modalBookBtn.addEventListener('click', function () {
                 var slotId = modalBookBtn.getAttribute('data-slot-id') || activeSlotId;
                 startCheckout(slotId, modalBookBtn);
+            });
+        }
+
+        if (modalRetryBtn) {
+            modalRetryBtn.addEventListener('click', function () {
+                var slotId = modalRetryBtn.getAttribute('data-slot-id') || activeSlotId;
+                startCheckout(slotId, modalRetryBtn);
             });
         }
 

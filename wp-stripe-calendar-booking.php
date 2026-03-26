@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.6
+ * Version: 1.8.7
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -449,6 +449,8 @@ class Stripe_Calendar_Booking_Cards
         $next_reconcile_text = $next_reconcile_ts
             ? wp_date('Y-m-d h:i a', $next_reconcile_ts, wp_timezone()) . ' ' . $site_timezone
             : 'Not scheduled yet';
+        $pk_mode = (strpos((string) $options['publishable_key'], 'pk_live_') === 0) ? 'LIVE' : ((strpos((string) $options['publishable_key'], 'pk_test_') === 0) ? 'TEST' : 'UNKNOWN');
+        $mode_class = $pk_mode === 'LIVE' ? 'is-live' : ($pk_mode === 'TEST' ? 'is-test' : 'is-unknown');
         $preview_slot = $this->get_next_preview_slot();
         $settings_url = admin_url('options-general.php?page=scbc-settings');
         $add_slot_url = admin_url('post-new.php?post_type=scbc_slot');
@@ -473,6 +475,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Completed Clients</strong><br>' . esc_html((string) $stats['completed_clients']) . '</div>';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Reconciled Last 24h</strong><br>' . esc_html((string) $reconciled_today) . '</div>';
         echo '</div>';
+        echo '<p><strong>Stripe Mode:</strong> <span class="scbc-mode-badge ' . esc_attr($mode_class) . '">' . esc_html($pk_mode) . '</span></p>';
         echo '<p><strong>Reconciliation Status:</strong> Checks every 15 minutes. Next check: <code>' . esc_html($next_reconcile_text) . '</code></p>';
         echo '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px;">';
         echo '<button type="button" id="scbc-test-stripe-btn" class="button button-secondary">Test Stripe Connection</button>';
@@ -1182,9 +1185,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.6');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.7');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.6', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.7', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1201,7 +1204,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.6');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.7');
     }
 
     public function render_shortcode()
@@ -1330,6 +1333,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
+        echo '<button type="button" id="scbc-modal-retry-btn" class="scbc-book-btn scbc-retry-btn" data-slot-id="" hidden>Retry Payment</button>';
         echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click Continue to Payment again.</p>';
         echo '</div>';
         echo '</div>';
@@ -1911,7 +1915,18 @@ class Stripe_Calendar_Booking_Cards
 
         $account_id = isset($body['id']) ? sanitize_text_field((string) $body['id']) : 'unknown';
         $charges_enabled = !empty($body['charges_enabled']) ? 'yes' : 'no';
-        $msg = 'Connected. Mode: ' . strtoupper($pk_mode) . '. Account: ' . $account_id . '. Charges enabled: ' . $charges_enabled . '.';
+        if ($charges_enabled !== 'yes') {
+            $fix = 'Connected but payments are not enabled. In Stripe Dashboard go to Activate payments then finish account details.';
+            $this->log_event('stripe_connection_test_failed', 'Stripe connection test found charges disabled.', array(
+                'mode' => $pk_mode,
+                'account_id' => $account_id,
+                'charges_enabled' => $charges_enabled,
+                'user_id' => get_current_user_id(),
+                'user_ip' => $this->get_request_ip(),
+            ), 'warning');
+            wp_send_json_error(array('message' => $fix), 400);
+        }
+        $msg = 'Connected. Mode: ' . strtoupper($pk_mode) . '. Account: ' . $account_id . '. Charges enabled: yes.';
         $this->log_event('stripe_connection_test_ok', 'Stripe connection test passed.', array(
             'mode' => $pk_mode,
             'account_id' => $account_id,
