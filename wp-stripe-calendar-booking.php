@@ -279,20 +279,20 @@ class Stripe_Calendar_Booking_Cards
     private function get_setting_help_text($key)
     {
         $tips = array(
-            'publishable_key' => 'This lets your page talk to Stripe safely.',
-            'secret_key' => 'This is your private Stripe key that confirms payments.',
-            'currency' => 'This is the money type like usd.',
-            'admin_email' => 'When someone books, we send a note to this email.',
-            'default_duration_minutes' => 'If you do not pick a time length, we use this many minutes.',
-            'admin_desktop_columns' => 'How many slot cards you want in each row on big screens.',
-            'tier_standard_max' => 'Prices up to this number are called Standard.',
-            'tier_premium_max' => 'Prices up to this number are called Premium. More than this is Elite.',
-            'brand_name' => 'This name appears in booking emails.',
-            'brand_color' => 'This color paints the email header.',
-            'reminder_subject' => 'This is the title line of reminder emails.',
-            'reminder_body' => 'This is the main reminder message your client reads.',
-            'session_expectations_copy' => 'This text tells clients what to prepare before the session.',
-            'cancellation_policy_copy' => 'This text explains cancel and reschedule rules.',
+            'publishable_key' => 'This is the key your page uses to start payment.',
+            'secret_key' => 'This is the secret key your site uses to check payment.',
+            'currency' => 'This is the money name like usd.',
+            'admin_email' => 'When someone books we send a message here.',
+            'default_duration_minutes' => 'If you do not choose time length we use this number.',
+            'admin_desktop_columns' => 'This picks how many cards fit in one row on big screens.',
+            'tier_standard_max' => 'Prices up to this number are Standard.',
+            'tier_premium_max' => 'Prices up to this number are Premium. Above it is Elite.',
+            'brand_name' => 'This name shows in your emails.',
+            'brand_color' => 'This color shows on top of your email.',
+            'reminder_subject' => 'This is the email title line.',
+            'reminder_body' => 'This is the reminder message your client reads.',
+            'session_expectations_copy' => 'This tells clients what to do before session.',
+            'cancellation_policy_copy' => 'This tells clients how cancel rules work.',
         );
         return isset($tips[$key]) ? $tips[$key] : '';
     }
@@ -300,20 +300,20 @@ class Stripe_Calendar_Booking_Cards
     private function get_setting_help_example($key)
     {
         $examples = array(
-            'publishable_key' => 'Example: starts with pk_test or pk_live.',
-            'secret_key' => 'Example: starts with sk_test or sk_live.',
-            'currency' => 'Example: usd.',
-            'admin_email' => 'Example: hello@yourdomain.com.',
-            'default_duration_minutes' => 'Example: 60 for one hour.',
-            'admin_desktop_columns' => 'Example: 4 makes four cards in one row.',
-            'tier_standard_max' => 'Example: 300 means 300 and below is Standard.',
-            'tier_premium_max' => 'Example: 700 means up to 700 is Premium.',
-            'brand_name' => 'Example: Vibe Connection Lounge.',
-            'brand_color' => 'Example: #0ea5e9.',
-            'reminder_subject' => 'Example: Reminder your session is tomorrow.',
-            'reminder_body' => 'Example: Include {schedule} so time appears.',
-            'session_expectations_copy' => 'Example: Bring your top 3 questions.',
-            'cancellation_policy_copy' => 'Example: Cancel 24 hours before start time.',
+            'publishable_key' => 'Like this: pk_test_123',
+            'secret_key' => 'Like this: sk_test_123',
+            'currency' => 'Like this: usd',
+            'admin_email' => 'Like this: hello@site.com',
+            'default_duration_minutes' => 'Like this: 60 means one hour',
+            'admin_desktop_columns' => 'Like this: 4 means four cards in one row',
+            'tier_standard_max' => 'Like this: 300 means up to 300 is Standard',
+            'tier_premium_max' => 'Like this: 700 means up to 700 is Premium',
+            'brand_name' => 'Like this: Vibe Connection Lounge',
+            'brand_color' => 'Like this: #0ea5e9',
+            'reminder_subject' => 'Like this: Your session is tomorrow',
+            'reminder_body' => 'Like this: See you on {schedule}',
+            'session_expectations_copy' => 'Like this: Bring your 3 questions',
+            'cancellation_policy_copy' => 'Like this: Cancel at least 24 hours early',
         );
         return isset($examples[$key]) ? $examples[$key] : '';
     }
