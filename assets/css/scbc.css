@@ -288,6 +288,12 @@
     opacity: 0.92;
 }
 
+.scbc-confirmed-refresh.is-success {
+    border-color: #16a34a;
+    color: #166534;
+    background: #ecfdf3;
+}
+
 .scbc-confirmed-refresh.is-loading::before {
     content: '';
     display: inline-block;

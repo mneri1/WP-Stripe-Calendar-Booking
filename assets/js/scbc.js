@@ -606,6 +606,7 @@
         if (confirmedRefreshBtn) {
             confirmedRefreshBtn.addEventListener('click', function () {
                 confirmedRefreshBtn.disabled = true;
+                confirmedRefreshBtn.classList.remove('is-success');
                 confirmedRefreshBtn.classList.add('is-loading');
                 confirmedRefreshBtn.textContent = 'Refreshing...';
                 var currentPage = getCurrentSlotsPage();
@@ -616,7 +617,12 @@
                     updateConfirmedRefreshedTime();
                     confirmedRefreshBtn.disabled = false;
                     confirmedRefreshBtn.classList.remove('is-loading');
-                    confirmedRefreshBtn.textContent = 'Refresh Now';
+                    confirmedRefreshBtn.classList.add('is-success');
+                    confirmedRefreshBtn.textContent = 'Refreshed ✓';
+                    window.setTimeout(function () {
+                        confirmedRefreshBtn.classList.remove('is-success');
+                        confirmedRefreshBtn.textContent = 'Refresh Now';
+                    }, 1300);
                 });
             });
         }
