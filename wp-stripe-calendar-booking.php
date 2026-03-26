@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.9
+ * Version: 1.8.10
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -450,7 +450,7 @@ class Stripe_Calendar_Booking_Cards
         $current = isset($options[$key]) ? (string) $options[$key] : '';
         $help = isset($args['help']) ? (string) $args['help'] : $this->get_setting_help_text($key);
         $example = isset($args['example']) ? (string) $args['example'] : $this->get_setting_help_example($key);
-        echo '<select name="' . esc_attr(self::OPTION_KEY . '[' . $key . ']') . '">';
+        echo '<select id="' . esc_attr('scbc-field-' . $key) . '" name="' . esc_attr(self::OPTION_KEY . '[' . $key . ']') . '">';
         foreach ($choices as $value => $label) {
             echo '<option value="' . esc_attr((string) $value) . '"' . selected($current, (string) $value, false) . '>' . esc_html((string) $label) . '</option>';
         }
@@ -524,6 +524,7 @@ class Stripe_Calendar_Booking_Cards
         do_settings_sections('scbc-settings');
         submit_button();
         echo '</form>';
+        echo '<script>(function(){var mode=document.getElementById("scbc-field-stripe_mode");if(!mode){return;}var liveRows=["live_publishable_key","live_secret_key"];var testRows=["test_publishable_key","test_secret_key"];function setRow(id,show){var row=document.getElementById(id);if(!row){return;}row.style.display=show?"":"none";}function sync(){var v=mode.value==="test"?"test":"live";for(var i=0;i<liveRows.length;i++){setRow(liveRows[i],v==="live");}for(var j=0;j<testRows.length;j++){setRow(testRows[j],v==="test");}}mode.addEventListener("change",sync);sync();})();</script>';
         echo '<div style="max-width:760px;margin-top:20px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:18px;">';
         echo '<h2 style="margin-top:0;">Modal Policy Preview</h2>';
         echo '<p style="margin-top:0;color:#475569;">Mobile modal width preview with frontend style spacing and action button.</p>';
