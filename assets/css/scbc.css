@@ -332,9 +332,9 @@
 }
 
 .scbc-confirmed-badge.is-today {
-    background: #fef3c7;
-    color: #92400e;
-    border-color: #fcd34d;
+    background: var(--scbc-brand, #0ea5e9);
+    color: #ffffff;
+    border-color: var(--scbc-brand, #0ea5e9);
     margin-left: 6px;
 }
 
@@ -360,6 +360,10 @@
     color: #334155;
     font-size: 12px;
     line-height: 1.45;
+}
+
+.scbc-confirmed-relative {
+    color: #0f172a;
 }
 
 .scbc-confirmed-ics {

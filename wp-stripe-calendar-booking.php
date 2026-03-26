@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.19
+ * Version: 1.8.20
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.19');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.20');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.19', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.20', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.19');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.20');
     }
 
     public function render_shortcode()
@@ -1294,6 +1294,10 @@ class Stripe_Calendar_Booking_Cards
         $first_page = $this->get_public_slots_page(1, self::FRONTEND_PAGE_SIZE, $requested_month);
         $session_expectations_copy = isset($options['session_expectations_copy']) ? (string) $options['session_expectations_copy'] : '';
         $cancellation_policy_copy = isset($options['cancellation_policy_copy']) ? (string) $options['cancellation_policy_copy'] : '';
+        $brand_color = !empty($options['brand_color']) ? sanitize_hex_color((string) $options['brand_color']) : '';
+        if (empty($brand_color)) {
+            $brand_color = '#0ea5e9';
+        }
         wp_localize_script('scbc-booking', 'SCBC_DATA', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce(self::NONCE_ACTION),
@@ -1374,6 +1378,11 @@ class Stripe_Calendar_Booking_Cards
                 $b_tz = $this->sanitize_timezone(isset($b['slot_timezone']) ? (string) $b['slot_timezone'] : 'UTC');
                 $a_ts = $this->get_slot_timestamp(isset($a['slot_start']) ? (string) $a['slot_start'] : '', $a_tz);
                 $b_ts = $this->get_slot_timestamp(isset($b['slot_start']) ? (string) $b['slot_start'] : '', $b_tz);
+                $a_today = ($a_ts > 0) && (wp_date('Y-m-d', $a_ts, new DateTimeZone($a_tz)) === wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($a_tz)));
+                $b_today = ($b_ts > 0) && (wp_date('Y-m-d', $b_ts, new DateTimeZone($b_tz)) === wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($b_tz)));
+                if ($a_today !== $b_today) {
+                    return $a_today ? -1 : 1;
+                }
                 if ($a_ts === $b_ts) {
                     return 0;
                 }
@@ -1387,7 +1396,7 @@ class Stripe_Calendar_Booking_Cards
             });
         }
 
-        echo '<div class="scbc-front-grid">';
+        echo '<div class="scbc-front-grid" style="--scbc-brand:' . esc_attr($brand_color) . ';">';
         echo '<aside class="scbc-confirmed-panel">';
         echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
         if (!empty($confirmed_email)) {
@@ -1423,6 +1432,27 @@ class Stripe_Calendar_Booking_Cards
                 if ($entry_ts > 0) {
                     $time_line .= ' ' . $this->get_gmt_offset_label($timezone, $entry_ts);
                 }
+                $relative_today = '';
+                if ($is_today && $entry_ts > 0) {
+                    $diff_seconds = $entry_ts - current_time('timestamp', true);
+                    if ($diff_seconds > 0) {
+                        $mins = (int) ceil($diff_seconds / 60);
+                        if ($mins >= 60) {
+                            $hours = (int) ceil($mins / 60);
+                            $relative_today = 'Starts in ' . (string) $hours . ' hour' . ($hours === 1 ? '' : 's');
+                        } else {
+                            $relative_today = 'Starts in ' . (string) $mins . ' minute' . ($mins === 1 ? '' : 's');
+                        }
+                    } else {
+                        $mins_ago = (int) floor(abs($diff_seconds) / 60);
+                        if ($mins_ago >= 60) {
+                            $hours_ago = (int) floor($mins_ago / 60);
+                            $relative_today = 'Started ' . (string) $hours_ago . ' hour' . ($hours_ago === 1 ? '' : 's') . ' ago';
+                        } else {
+                            $relative_today = 'Started ' . (string) $mins_ago . ' minute' . ($mins_ago === 1 ? '' : 's') . ' ago';
+                        }
+                    }
+                }
                 $booked_on = '';
                 if (!empty($entry['booked_at'])) {
                     $booked_on = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), (string) $entry['booked_at']);
@@ -1456,6 +1486,9 @@ class Stripe_Calendar_Booking_Cards
                 echo '<h4>' . esc_html((string) $title) . '</h4>';
                 echo '<p>' . esc_html((string) $date_line) . '</p>';
                 echo '<p>' . esc_html((string) $time_line) . '</p>';
+                if ($relative_today !== '') {
+                    echo '<p class="scbc-confirmed-relative"><strong>' . esc_html($relative_today) . '</strong></p>';
+                }
                 if ($booked_on !== '') {
                     echo '<p><strong>Booked On:</strong> ' . esc_html((string) $booked_on) . '</p>';
                 }
