@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.20
+ * Version: 1.8.21
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.20');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.21');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.20', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.21', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.20');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.21');
     }
 
     public function render_shortcode()
@@ -1373,15 +1373,26 @@ class Stripe_Calendar_Booking_Cards
         }
         $confirmed_entries = !empty($confirmed_email) ? $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS) : array();
         if (!empty($confirmed_entries)) {
-            usort($confirmed_entries, function ($a, $b) {
+            $now_ts = current_time('timestamp', true);
+            usort($confirmed_entries, function ($a, $b) use ($now_ts) {
                 $a_tz = $this->sanitize_timezone(isset($a['slot_timezone']) ? (string) $a['slot_timezone'] : 'UTC');
                 $b_tz = $this->sanitize_timezone(isset($b['slot_timezone']) ? (string) $b['slot_timezone'] : 'UTC');
                 $a_ts = $this->get_slot_timestamp(isset($a['slot_start']) ? (string) $a['slot_start'] : '', $a_tz);
                 $b_ts = $this->get_slot_timestamp(isset($b['slot_start']) ? (string) $b['slot_start'] : '', $b_tz);
-                $a_today = ($a_ts > 0) && (wp_date('Y-m-d', $a_ts, new DateTimeZone($a_tz)) === wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($a_tz)));
-                $b_today = ($b_ts > 0) && (wp_date('Y-m-d', $b_ts, new DateTimeZone($b_tz)) === wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($b_tz)));
+                $a_today = ($a_ts > 0) && (wp_date('Y-m-d', $a_ts, new DateTimeZone($a_tz)) === wp_date('Y-m-d', $now_ts, new DateTimeZone($a_tz)));
+                $b_today = ($b_ts > 0) && (wp_date('Y-m-d', $b_ts, new DateTimeZone($b_tz)) === wp_date('Y-m-d', $now_ts, new DateTimeZone($b_tz)));
                 if ($a_today !== $b_today) {
                     return $a_today ? -1 : 1;
+                }
+                if ($a_today && $b_today) {
+                    $a_upcoming = $a_ts > $now_ts;
+                    $b_upcoming = $b_ts > $now_ts;
+                    if ($a_upcoming !== $b_upcoming) {
+                        return $a_upcoming ? -1 : 1;
+                    }
+                    if (!$a_upcoming && !$b_upcoming) {
+                        return $a_ts > $b_ts ? -1 : 1;
+                    }
                 }
                 if ($a_ts === $b_ts) {
                     return 0;
@@ -1487,7 +1498,7 @@ class Stripe_Calendar_Booking_Cards
                 echo '<p>' . esc_html((string) $date_line) . '</p>';
                 echo '<p>' . esc_html((string) $time_line) . '</p>';
                 if ($relative_today !== '') {
-                    echo '<p class="scbc-confirmed-relative"><strong>' . esc_html($relative_today) . '</strong></p>';
+                    echo '<p class="scbc-confirmed-relative" data-start-ts="' . esc_attr((string) $entry_ts) . '"><strong>' . esc_html($relative_today) . '</strong></p>';
                 }
                 if ($booked_on !== '') {
                     echo '<p><strong>Booked On:</strong> ' . esc_html((string) $booked_on) . '</p>';

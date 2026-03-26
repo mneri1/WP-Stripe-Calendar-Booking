@@ -463,5 +463,41 @@
             }
             document.body.removeChild(temp);
         });
+
+        function formatRelativeStart(startTs, nowTs) {
+            var diffSeconds = startTs - nowTs;
+            if (diffSeconds > 0) {
+                var mins = Math.ceil(diffSeconds / 60);
+                if (mins >= 60) {
+                    var hours = Math.ceil(mins / 60);
+                    return 'Starts in ' + String(hours) + ' hour' + (hours === 1 ? '' : 's');
+                }
+                return 'Starts in ' + String(mins) + ' minute' + (mins === 1 ? '' : 's');
+            }
+            var minsAgo = Math.floor(Math.abs(diffSeconds) / 60);
+            if (minsAgo >= 60) {
+                var hoursAgo = Math.floor(minsAgo / 60);
+                return 'Started ' + String(hoursAgo) + ' hour' + (hoursAgo === 1 ? '' : 's') + ' ago';
+            }
+            return 'Started ' + String(minsAgo) + ' minute' + (minsAgo === 1 ? '' : 's') + ' ago';
+        }
+
+        function refreshConfirmedRelativeTimes() {
+            var nodes = document.querySelectorAll('.scbc-confirmed-relative[data-start-ts]');
+            if (!nodes.length) {
+                return;
+            }
+            var nowTs = Math.floor(Date.now() / 1000);
+            nodes.forEach(function (node) {
+                var ts = parseInt(node.getAttribute('data-start-ts') || '0', 10);
+                if (!ts || isNaN(ts)) {
+                    return;
+                }
+                node.innerHTML = '<strong>' + escapeHtml(formatRelativeStart(ts, nowTs)) + '</strong>';
+            });
+        }
+
+        refreshConfirmedRelativeTimes();
+        window.setInterval(refreshConfirmedRelativeTimes, 60000);
     });
 })();
