@@ -1358,7 +1358,7 @@ class Stripe_Calendar_Booking_Cards
         $notice_session = isset($_GET['scbc_session']) ? sanitize_text_field(wp_unslash($_GET['scbc_session'])) : '';
         $notice_email = $this->resolve_customer_email_from_request();
         if (is_user_logged_in() && !empty($notice_email) && is_email($notice_email)) {
-            update_user_meta(get_current_user_id(), 'scbc_last_checkout_email', sanitize_email($notice_email));
+            $this->append_user_checkout_email(get_current_user_id(), sanitize_email($notice_email));
         }
         if ($notice === 'success') {
             echo '<div class="scbc-notice scbc-success">Payment confirmed. Your booking is reserved.';
@@ -1404,11 +1404,13 @@ class Stripe_Calendar_Booking_Cards
         $confirmed_email = $notice_email;
         $confirmed_user_id = 0;
         $confirmed_username = '';
+        $account_email = '';
         if (is_user_logged_in()) {
             $current_user = wp_get_current_user();
             if ($current_user instanceof WP_User) {
                 $confirmed_user_id = (int) $current_user->ID;
                 $confirmed_username = sanitize_user((string) $current_user->user_login, true);
+                $account_email = sanitize_email((string) $current_user->user_email);
                 if (empty($confirmed_email) && !empty($current_user->user_email) && is_email($current_user->user_email)) {
                     $confirmed_email = sanitize_email($current_user->user_email);
                 }
@@ -1416,20 +1418,30 @@ class Stripe_Calendar_Booking_Cards
         }
 
         $confirmed_entries = array();
+        $candidate_emails = array();
         if ($confirmed_user_id > 0) {
             $confirmed_entries = $this->get_booking_entries_by_user_id($confirmed_user_id, self::PROGRAM_SESSIONS);
             if (empty($confirmed_entries)) {
-                $last_checkout_email = sanitize_email((string) get_user_meta($confirmed_user_id, 'scbc_last_checkout_email', true));
-                if (!empty($last_checkout_email)) {
-                    $confirmed_entries = $this->get_booking_entries_by_email($last_checkout_email, self::PROGRAM_SESSIONS);
-                    if (empty($confirmed_email)) {
-                        $confirmed_email = $last_checkout_email;
-                    }
+                $candidate_emails = $this->get_user_checkout_emails($confirmed_user_id, $account_email, $notice_email);
+                if (!empty($candidate_emails)) {
+                    $confirmed_entries = $this->get_booking_entries_by_emails($candidate_emails, self::PROGRAM_SESSIONS * 4);
+                }
+            }
+            if (empty($confirmed_entries)) {
+                $owned_slot_ids = $this->get_slot_ids_for_customer_identity($confirmed_user_id, $confirmed_username, $candidate_emails);
+                if (!empty($owned_slot_ids)) {
+                    $confirmed_entries = $this->get_booking_entries_by_slot_ids($owned_slot_ids, self::PROGRAM_SESSIONS * 4);
                 }
             }
         }
         if (empty($confirmed_entries) && !empty($confirmed_email)) {
             $confirmed_entries = $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS);
+        }
+        if (empty($confirmed_email) && !empty($candidate_emails[0])) {
+            $confirmed_email = sanitize_email((string) $candidate_emails[0]);
+        }
+        if (empty($confirmed_email) && !empty($confirmed_entries[0]['customer_email'])) {
+            $confirmed_email = sanitize_email((string) $confirmed_entries[0]['customer_email']);
         }
         if (!empty($confirmed_entries)) {
             $now_ts = current_time('timestamp', true);
@@ -1481,14 +1493,6 @@ class Stripe_Calendar_Booking_Cards
             }
             if (!empty($confirmed_email)) {
                 echo '<p class="scbc-confirmed-email">Booking email ' . esc_html($confirmed_email) . '</p>';
-            }
-            if (!empty($confirmed_entries) || !empty($confirmed_email)) {
-                $confirmed_used = count($confirmed_entries);
-                $confirmed_left = max(0, self::PROGRAM_SESSIONS - $confirmed_used);
-                echo '<div class="scbc-confirmed-metrics">';
-                echo '<div class="scbc-confirmed-metric"><span>Sessions Used</span><strong>' . esc_html((string) $confirmed_used . '/' . (string) self::PROGRAM_SESSIONS) . '</strong></div>';
-                echo '<div class="scbc-confirmed-metric"><span>Sessions Left</span><strong>' . esc_html((string) $confirmed_left) . '</strong></div>';
-                echo '</div>';
             }
             if (!empty($confirmed_entries)) {
                 echo '<div class="scbc-confirmed-list">';
@@ -2100,7 +2104,7 @@ class Stripe_Calendar_Booking_Cards
             wp_send_json_error(array('message' => 'A valid client email is required.'), 400);
         }
         if ($logged_user_id > 0) {
-            update_user_meta($logged_user_id, 'scbc_last_checkout_email', $customer_email);
+            $this->append_user_checkout_email($logged_user_id, $customer_email);
         }
         $booked_total = $this->count_bookings_for_email($customer_email);
         if ($booked_total >= self::PROGRAM_SESSIONS) {
@@ -2510,7 +2514,7 @@ class Stripe_Calendar_Booking_Cards
         $entry_user_id = isset($session_data['metadata']['user_id']) ? absint($session_data['metadata']['user_id']) : 0;
         $entry_username = isset($session_data['metadata']['username']) ? sanitize_user((string) $session_data['metadata']['username'], true) : '';
         if ($entry_user_id > 0 && !empty($customer_email)) {
-            update_user_meta($entry_user_id, 'scbc_last_checkout_email', $customer_email);
+            $this->append_user_checkout_email($entry_user_id, $customer_email);
         }
 
         $wpdb->insert(
@@ -2672,6 +2676,88 @@ class Stripe_Calendar_Booking_Cards
         return is_array($rows) ? $rows : array();
     }
 
+    private function get_booking_entries_by_emails($emails, $limit = 100)
+    {
+        global $wpdb;
+        if (!is_array($emails) || empty($emails)) {
+            return array();
+        }
+        $clean = array();
+        foreach ($emails as $email) {
+            $sanitized = sanitize_email((string) $email);
+            if (!empty($sanitized) && is_email($sanitized)) {
+                $clean[$sanitized] = $sanitized;
+            }
+        }
+        if (empty($clean)) {
+            return array();
+        }
+        $table = $this->get_bookings_table_name();
+        $safe_limit = max(1, min(500, (int) $limit));
+        $placeholders = implode(',', array_fill(0, count($clean), '%s'));
+        $params = array_values($clean);
+        $params[] = $safe_limit;
+        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE customer_email IN ({$placeholders}) ORDER BY booked_at ASC LIMIT %d", $params);
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        return is_array($rows) ? $rows : array();
+    }
+
+    private function append_user_checkout_email($user_id, $email)
+    {
+        $safe_user_id = absint($user_id);
+        $safe_email = sanitize_email((string) $email);
+        if ($safe_user_id < 1 || empty($safe_email) || !is_email($safe_email)) {
+            return;
+        }
+        update_user_meta($safe_user_id, 'scbc_last_checkout_email', $safe_email);
+        $list = get_user_meta($safe_user_id, 'scbc_checkout_emails', true);
+        if (!is_array($list)) {
+            $list = array();
+        }
+        $clean = array();
+        foreach ($list as $item) {
+            $value = sanitize_email((string) $item);
+            if (!empty($value) && is_email($value)) {
+                $clean[$value] = $value;
+            }
+        }
+        $clean[$safe_email] = $safe_email;
+        $clean_values = array_values($clean);
+        if (count($clean_values) > 20) {
+            $clean_values = array_slice($clean_values, -20);
+        }
+        update_user_meta($safe_user_id, 'scbc_checkout_emails', $clean_values);
+    }
+
+    private function get_user_checkout_emails($user_id, $account_email = '', $notice_email = '')
+    {
+        $safe_user_id = absint($user_id);
+        $emails = array();
+        if (!empty($notice_email) && is_email($notice_email)) {
+            $emails[sanitize_email((string) $notice_email)] = sanitize_email((string) $notice_email);
+        }
+        if ($safe_user_id > 0) {
+            $last = sanitize_email((string) get_user_meta($safe_user_id, 'scbc_last_checkout_email', true));
+            if (!empty($last) && is_email($last)) {
+                $emails[$last] = $last;
+            }
+            $stored = get_user_meta($safe_user_id, 'scbc_checkout_emails', true);
+            if (is_array($stored)) {
+                foreach ($stored as $item) {
+                    $value = sanitize_email((string) $item);
+                    if (!empty($value) && is_email($value)) {
+                        $emails[$value] = $value;
+                    }
+                }
+            }
+        }
+        $account = sanitize_email((string) $account_email);
+        if (!empty($account) && is_email($account)) {
+            $emails[$account] = $account;
+        }
+        return array_values($emails);
+    }
+
     private function get_booking_entries_by_user_id($user_id, $limit = 100)
     {
         global $wpdb;
@@ -2684,6 +2770,88 @@ class Stripe_Calendar_Booking_Cards
         $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE user_id = %d ORDER BY booked_at ASC LIMIT %d", $safe_user_id, $safe_limit);
         $rows = $wpdb->get_results($sql, ARRAY_A);
         return is_array($rows) ? $rows : array();
+    }
+
+    private function get_booking_entries_by_slot_ids($slot_ids, $limit = 100)
+    {
+        global $wpdb;
+        if (!is_array($slot_ids) || empty($slot_ids)) {
+            return array();
+        }
+        $clean_ids = array();
+        foreach ($slot_ids as $slot_id) {
+            $safe_slot_id = absint($slot_id);
+            if ($safe_slot_id > 0) {
+                $clean_ids[$safe_slot_id] = $safe_slot_id;
+            }
+        }
+        if (empty($clean_ids)) {
+            return array();
+        }
+        $table = $this->get_bookings_table_name();
+        $safe_limit = max(1, min(500, (int) $limit));
+        $placeholders = implode(',', array_fill(0, count($clean_ids), '%d'));
+        $params = array_values($clean_ids);
+        $params[] = $safe_limit;
+        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE slot_id IN ({$placeholders}) ORDER BY booked_at ASC LIMIT %d", $params);
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        return is_array($rows) ? $rows : array();
+    }
+
+    private function get_slot_ids_for_customer_identity($user_id, $username = '', $emails = array())
+    {
+        $meta_or = array('relation' => 'OR');
+        $safe_user_id = absint($user_id);
+        if ($safe_user_id > 0) {
+            $meta_or[] = array(
+                'key' => '_scbc_customer_user_id',
+                'value' => (string) $safe_user_id,
+                'compare' => '=',
+            );
+        }
+        $safe_username = sanitize_user((string) $username, true);
+        if ($safe_username !== '') {
+            $meta_or[] = array(
+                'key' => '_scbc_customer_username',
+                'value' => $safe_username,
+                'compare' => '=',
+            );
+        }
+        if (is_array($emails)) {
+            foreach ($emails as $email) {
+                $safe_email = sanitize_email((string) $email);
+                if ($safe_email === '' || !is_email($safe_email)) {
+                    continue;
+                }
+                $meta_or[] = array(
+                    'key' => '_scbc_customer_email',
+                    'value' => $safe_email,
+                    'compare' => '=',
+                );
+            }
+        }
+        if (count($meta_or) <= 1) {
+            return array();
+        }
+        $ids = get_posts(array(
+            'post_type' => 'scbc_slot',
+            'post_status' => array('publish', 'future', 'draft', 'pending', 'private'),
+            'posts_per_page' => 200,
+            'fields' => 'ids',
+            'no_found_rows' => true,
+            'meta_query' => $meta_or,
+        ));
+        if (!is_array($ids)) {
+            return array();
+        }
+        $clean = array();
+        foreach ($ids as $slot_id) {
+            $safe_slot_id = absint($slot_id);
+            if ($safe_slot_id > 0) {
+                $clean[$safe_slot_id] = $safe_slot_id;
+            }
+        }
+        return array_values($clean);
     }
 
     private function count_bookings_for_email($email)
