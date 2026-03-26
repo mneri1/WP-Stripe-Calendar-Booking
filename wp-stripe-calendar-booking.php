@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.8
+ * Version: 1.8.9
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -223,8 +223,17 @@ class Stripe_Calendar_Booking_Cards
     {
         register_setting(self::OPTION_KEY, self::OPTION_KEY, array($this, 'sanitize_settings'));
         add_settings_section('scbc_main', 'Stripe Configuration', '__return_false', 'scbc-settings');
-        add_settings_field('publishable_key', 'Stripe Publishable Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'publishable_key', 'placeholder' => 'pk_live_or_test'));
-        add_settings_field('secret_key', 'Stripe Secret Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'secret_key', 'placeholder' => 'sk_live_or_test'));
+        add_settings_field('stripe_mode', 'Stripe Mode', array($this, 'render_select_field'), 'scbc-settings', 'scbc_main', array(
+            'key' => 'stripe_mode',
+            'options' => array(
+                'live' => 'LIVE Mode',
+                'test' => 'TEST Mode',
+            ),
+        ));
+        add_settings_field('live_publishable_key', 'Live Publishable Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'live_publishable_key', 'placeholder' => 'pk_live_xxx'));
+        add_settings_field('live_secret_key', 'Live Secret Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'live_secret_key', 'placeholder' => 'sk_live_xxx'));
+        add_settings_field('test_publishable_key', 'Test Publishable Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'test_publishable_key', 'placeholder' => 'pk_test_xxx'));
+        add_settings_field('test_secret_key', 'Test Secret Key', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'test_secret_key', 'placeholder' => 'sk_test_xxx'));
         add_settings_field('currency', 'Currency', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'currency', 'placeholder' => 'usd'));
         add_settings_field('admin_email', 'Admin Notification Email', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'admin_email', 'placeholder' => get_option('admin_email')));
         add_settings_field('default_duration_minutes', 'Default Event Duration Minutes', array($this, 'render_text_field'), 'scbc-settings', 'scbc_main', array('key' => 'default_duration_minutes', 'placeholder' => '60'));
@@ -251,6 +260,13 @@ class Stripe_Calendar_Booking_Cards
     public function sanitize_settings($input)
     {
         $output = array();
+        $mode = isset($input['stripe_mode']) ? sanitize_key($input['stripe_mode']) : 'live';
+        $output['stripe_mode'] = in_array($mode, array('live', 'test'), true) ? $mode : 'live';
+        $output['live_publishable_key'] = isset($input['live_publishable_key']) ? sanitize_text_field($input['live_publishable_key']) : '';
+        $output['live_secret_key'] = isset($input['live_secret_key']) ? sanitize_text_field($input['live_secret_key']) : '';
+        $output['test_publishable_key'] = isset($input['test_publishable_key']) ? sanitize_text_field($input['test_publishable_key']) : '';
+        $output['test_secret_key'] = isset($input['test_secret_key']) ? sanitize_text_field($input['test_secret_key']) : '';
+        // Keep legacy keys for backward compatibility and migration.
         $output['publishable_key'] = isset($input['publishable_key']) ? sanitize_text_field($input['publishable_key']) : '';
         $output['secret_key'] = isset($input['secret_key']) ? sanitize_text_field($input['secret_key']) : '';
         $output['currency'] = isset($input['currency']) ? strtolower(sanitize_text_field($input['currency'])) : 'usd';
@@ -282,8 +298,13 @@ class Stripe_Calendar_Booking_Cards
     private function get_setting_help_text($key)
     {
         $tips = array(
-            'publishable_key' => 'This is the key your page uses to start payment.',
-            'secret_key' => 'This is the secret key your site uses to check payment.',
+            'stripe_mode' => 'Pick LIVE for real payments. Pick TEST for practice payments.',
+            'live_publishable_key' => 'This is the live key your page uses to start real payment.',
+            'live_secret_key' => 'This is the live secret key your site uses to check real payment.',
+            'test_publishable_key' => 'This is the test key your page uses for practice payment.',
+            'test_secret_key' => 'This is the test secret key your site uses for practice checks.',
+            'publishable_key' => 'Old field kept for compatibility.',
+            'secret_key' => 'Old field kept for compatibility.',
             'currency' => 'This is the money name like usd.',
             'admin_email' => 'When someone books we send a message here.',
             'default_duration_minutes' => 'If you do not choose time length we use this number.',
@@ -303,6 +324,11 @@ class Stripe_Calendar_Booking_Cards
     private function get_setting_help_example($key)
     {
         $examples = array(
+            'stripe_mode' => 'Like this: TEST when trying things',
+            'live_publishable_key' => 'Like this: pk_live_123',
+            'live_secret_key' => 'Like this: sk_live_123',
+            'test_publishable_key' => 'Like this: pk_test_123',
+            'test_secret_key' => 'Like this: sk_test_123',
             'publishable_key' => 'Like this: pk_test_123',
             'secret_key' => 'Like this: sk_test_123',
             'currency' => 'Like this: usd',
@@ -451,7 +477,8 @@ class Stripe_Calendar_Booking_Cards
         $next_reconcile_text = $next_reconcile_ts
             ? wp_date('Y-m-d h:i a', $next_reconcile_ts, wp_timezone()) . ' ' . $site_timezone
             : 'Not scheduled yet';
-        $pk_mode = (strpos((string) $options['publishable_key'], 'pk_live_') === 0) ? 'LIVE' : ((strpos((string) $options['publishable_key'], 'pk_test_') === 0) ? 'TEST' : 'UNKNOWN');
+        $active = $this->get_active_stripe_keys($options);
+        $pk_mode = $active['mode'] === 'live' ? 'LIVE' : ($active['mode'] === 'test' ? 'TEST' : 'UNKNOWN');
         $mode_class = $pk_mode === 'LIVE' ? 'is-live' : ($pk_mode === 'TEST' ? 'is-test' : 'is-unknown');
         $preview_slot = $this->get_next_preview_slot();
         $settings_url = admin_url('options-general.php?page=scbc-settings');
@@ -478,7 +505,9 @@ class Stripe_Calendar_Booking_Cards
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Reconciled Last 24h</strong><br>' . esc_html((string) $reconciled_today) . '</div>';
         echo '</div>';
         echo '<p><strong>Stripe Mode:</strong> <span class="scbc-mode-badge ' . esc_attr($mode_class) . '">' . esc_html($pk_mode) . '</span></p>';
-        if ($pk_mode === 'UNKNOWN') {
+        if (empty($active['publishable_key']) || empty($active['secret_key'])) {
+            echo '<div class="notice notice-error inline"><p><strong>Stripe keys missing for selected mode.</strong> Add both publishable and secret keys for <strong>' . esc_html(strtoupper($active['mode'])) . '</strong>.</p></div>';
+        } elseif ($pk_mode === 'UNKNOWN') {
             echo '<div class="notice notice-error inline"><p><strong>Stripe key mode looks wrong.</strong> Use keys that start with <code>pk_test_</code> and <code>sk_test_</code> or <code>pk_live_</code> and <code>sk_live_</code>.</p></div>';
         }
         echo '<p><strong>Reconciliation Status:</strong> Checks every 15 minutes. Next check: <code>' . esc_html($next_reconcile_text) . '</code></p>';
@@ -521,6 +550,38 @@ class Stripe_Calendar_Booking_Cards
         echo '</div>';
         echo '</div>';
         $this->render_help_tip_script();
+    }
+
+    private function get_active_stripe_keys($settings = null)
+    {
+        $settings = is_array($settings) ? $settings : $this->get_settings();
+        $mode = isset($settings['stripe_mode']) ? sanitize_key((string) $settings['stripe_mode']) : 'live';
+        if (!in_array($mode, array('live', 'test'), true)) {
+            $mode = 'live';
+        }
+
+        $publishable = $mode === 'test'
+            ? (string) (isset($settings['test_publishable_key']) ? $settings['test_publishable_key'] : '')
+            : (string) (isset($settings['live_publishable_key']) ? $settings['live_publishable_key'] : '');
+        $secret = $mode === 'test'
+            ? (string) (isset($settings['test_secret_key']) ? $settings['test_secret_key'] : '')
+            : (string) (isset($settings['live_secret_key']) ? $settings['live_secret_key'] : '');
+
+        // Backward compatibility fallback for older installs.
+        if ($mode === 'live') {
+            if ($publishable === '' && isset($settings['publishable_key'])) {
+                $publishable = (string) $settings['publishable_key'];
+            }
+            if ($secret === '' && isset($settings['secret_key'])) {
+                $secret = (string) $settings['secret_key'];
+            }
+        }
+
+        return array(
+            'mode' => $mode,
+            'publishable_key' => sanitize_text_field($publishable),
+            'secret_key' => sanitize_text_field($secret),
+        );
     }
 
     public function render_admin_calendar_page()
@@ -1190,9 +1251,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.8');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.9');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.8', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.9', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1209,15 +1270,16 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.8');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.9');
     }
 
     public function render_shortcode()
     {
         $options = $this->get_settings();
-        if (empty($options['publishable_key']) || empty($options['secret_key'])) {
+        $active_keys = $this->get_active_stripe_keys($options);
+        if (empty($active_keys['publishable_key']) || empty($active_keys['secret_key'])) {
             return current_user_can('manage_options')
-                ? '<div class="scbc-notice scbc-error">Please configure Stripe keys in Settings > Stripe Booking.</div>'
+                ? '<div class="scbc-notice scbc-error">Please configure Stripe keys for the selected mode in Settings > Stripe Booking.</div>'
                 : '<div class="scbc-notice scbc-error">Booking is currently unavailable.</div>';
         }
 
@@ -1234,7 +1296,7 @@ class Stripe_Calendar_Booking_Cards
         wp_localize_script('scbc-booking', 'SCBC_DATA', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce(self::NONCE_ACTION),
-            'publishableKey' => $options['publishable_key'],
+            'publishableKey' => $active_keys['publishable_key'],
             'programSessions' => self::PROGRAM_SESSIONS,
             'buttonLabel' => 'Book 6 Week Session',
             'pageSize' => self::FRONTEND_PAGE_SIZE,
@@ -1786,7 +1848,8 @@ class Stripe_Calendar_Booking_Cards
         }
 
         $settings = $this->get_settings();
-        if (empty($settings['secret_key']) || empty($settings['publishable_key'])) {
+        $active_keys = $this->get_active_stripe_keys($settings);
+        if (empty($active_keys['secret_key']) || empty($active_keys['publishable_key'])) {
             $this->log_event('checkout_session_failed', 'Stripe keys are missing.', array('slot_id' => $slot_id), 'error');
             wp_send_json_error(array('message' => 'Stripe is not configured.'), 500);
         }
@@ -1823,7 +1886,7 @@ class Stripe_Calendar_Booking_Cards
 
         $response = wp_remote_post('https://api.stripe.com/v1/checkout/sessions', array(
             'headers' => array(
-                'Authorization' => 'Bearer ' . $settings['secret_key'],
+                'Authorization' => 'Bearer ' . $active_keys['secret_key'],
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ),
             'body' => $body,
@@ -1876,10 +1939,11 @@ class Stripe_Calendar_Booking_Cards
         check_ajax_referer('scbc_test_connection', 'nonce');
 
         $settings = $this->get_settings();
-        $publishable_key = isset($settings['publishable_key']) ? (string) $settings['publishable_key'] : '';
-        $secret_key = isset($settings['secret_key']) ? (string) $settings['secret_key'] : '';
+        $active_keys = $this->get_active_stripe_keys($settings);
+        $publishable_key = (string) $active_keys['publishable_key'];
+        $secret_key = (string) $active_keys['secret_key'];
         if ($publishable_key === '' || $secret_key === '') {
-            wp_send_json_error(array('message' => 'Please add Stripe keys first.'), 400);
+            wp_send_json_error(array('message' => 'Please add keys for selected mode first.'), 400);
         }
 
         $pk_mode = strpos($publishable_key, 'pk_live_') === 0 ? 'live' : (strpos($publishable_key, 'pk_test_') === 0 ? 'test' : 'unknown');
@@ -1889,6 +1953,9 @@ class Stripe_Calendar_Booking_Cards
         }
         if ($pk_mode !== $sk_mode) {
             wp_send_json_error(array('message' => 'Stripe keys are mixed. Use both test keys or both live keys.'), 400);
+        }
+        if ($active_keys['mode'] !== $pk_mode) {
+            wp_send_json_error(array('message' => 'Selected mode does not match key type. Switch mode or replace keys.'), 400);
         }
 
         $response = wp_remote_get('https://api.stripe.com/v1/account', array(
@@ -1932,9 +1999,9 @@ class Stripe_Calendar_Booking_Cards
             ), 'warning');
             wp_send_json_error(array('message' => $fix), 400);
         }
-        $msg = 'Connected. Mode: ' . strtoupper($pk_mode) . '. Account: ' . $account_id . '. Charges enabled: yes.';
+        $msg = 'Connected. Mode: ' . strtoupper($active_keys['mode']) . '. Account: ' . $account_id . '. Charges enabled: yes.';
         $this->log_event('stripe_connection_test_ok', 'Stripe connection test passed.', array(
-            'mode' => $pk_mode,
+            'mode' => $active_keys['mode'],
             'account_id' => $account_id,
             'charges_enabled' => $charges_enabled,
             'user_id' => get_current_user_id(),
@@ -1979,11 +2046,12 @@ class Stripe_Calendar_Booking_Cards
         }
 
         $settings = $this->get_settings();
-        if (empty($settings['secret_key'])) {
+        $active_keys = $this->get_active_stripe_keys($settings);
+        if (empty($active_keys['secret_key'])) {
             $this->log_event('checkout_return_failed', 'Checkout return failed because Stripe secret key is missing.', array('slot_id' => $slot_id), 'error');
             $this->redirect_with_notice('cancel');
         }
-        $session_data = $this->fetch_stripe_session($session_id, $settings['secret_key']);
+        $session_data = $this->fetch_stripe_session($session_id, $active_keys['secret_key']);
         if (!$session_data) {
             $this->log_event('checkout_return_pending', 'Checkout return session could not be confirmed yet.', array('slot_id' => $slot_id, 'session_id' => $session_id), 'warning');
             $this->redirect_with_notice('pending');
@@ -2989,6 +3057,11 @@ class Stripe_Calendar_Booking_Cards
     {
         $settings = get_option(self::OPTION_KEY, array());
         return wp_parse_args($settings, array(
+            'stripe_mode' => 'live',
+            'live_publishable_key' => '',
+            'live_secret_key' => '',
+            'test_publishable_key' => '',
+            'test_secret_key' => '',
             'publishable_key' => '',
             'secret_key' => '',
             'currency' => 'usd',
