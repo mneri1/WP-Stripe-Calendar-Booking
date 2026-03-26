@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.7.5
+ * Version: 1.8.0
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -12,8 +12,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once plugin_dir_path(__FILE__) . 'includes/trait-scbc-customer-ref.php';
+require_once plugin_dir_path(__FILE__) . 'includes/trait-scbc-reconciliation.php';
+
 class Stripe_Calendar_Booking_Cards
 {
+    use SCBC_Customer_Ref_Trait;
+    use SCBC_Reconciliation_Trait;
+
     const OPTION_KEY = 'scbc_settings';
     const NONCE_ACTION = 'scbc_checkout_nonce';
     const PROGRAM_SESSIONS = 6;
@@ -41,7 +47,9 @@ class Stripe_Calendar_Booking_Cards
         add_action('template_redirect', array($this, 'handle_checkout_return'));
         add_action('template_redirect', array($this, 'handle_ics_download'));
         add_action('init', array($this, 'ensure_reminder_cron'));
+        add_action('init', array($this, 'ensure_reconciliation_cron'));
         add_action('scbc_hourly_reminder_event', array($this, 'process_scheduled_reminders'));
+        add_action('scbc_reconcile_event', array($this, 'process_scheduled_reconciliation'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
         add_filter('plugin_row_meta', array($this, 'plugin_row_meta'), 10, 2);
     }
@@ -929,7 +937,7 @@ class Stripe_Calendar_Booking_Cards
         $notice = isset($_GET['scbc_booking']) ? sanitize_text_field(wp_unslash($_GET['scbc_booking'])) : '';
         $notice_slot = isset($_GET['scbc_slot']) ? absint(wp_unslash($_GET['scbc_slot'])) : 0;
         $notice_session = isset($_GET['scbc_session']) ? sanitize_text_field(wp_unslash($_GET['scbc_session'])) : '';
-        $notice_email = isset($_GET['scbc_email']) ? sanitize_email(wp_unslash($_GET['scbc_email'])) : '';
+        $notice_email = $this->resolve_customer_email_from_request();
         if ($notice === 'success') {
             echo '<div class="scbc-notice scbc-success">Payment confirmed. Your booking is reserved.';
             if ($notice_slot > 0 && !empty($notice_session)) {
@@ -953,7 +961,10 @@ class Stripe_Calendar_Booking_Cards
             if (!empty($notice_email)) {
                 $used = $this->count_bookings_for_email($notice_email);
                 $left = max(0, self::PROGRAM_SESSIONS - $used);
-                $portal_url = add_query_arg('scbc_email', rawurlencode($notice_email), home_url('/'));
+                $portal_ref = $this->create_customer_ref_token($notice_email, $notice_slot, $notice_session);
+                $portal_url = !empty($portal_ref)
+                    ? add_query_arg('customer_ref', rawurlencode($portal_ref), home_url('/'))
+                    : add_query_arg('scbc_email', rawurlencode($notice_email), home_url('/'));
                 echo ' Sessions used: ' . esc_html((string) $used . '/' . (string) self::PROGRAM_SESSIONS) . '.';
                 echo ' Remaining: ' . esc_html((string) $left) . '.';
                 echo ' <a href="' . esc_url($portal_url) . '" class="scbc-ics-link">Open Client Portal</a>';
@@ -1224,7 +1235,7 @@ class Stripe_Calendar_Booking_Cards
 
     public function render_client_portal_shortcode()
     {
-        $email = isset($_GET['scbc_email']) ? sanitize_email(wp_unslash($_GET['scbc_email'])) : '';
+        $email = $this->resolve_customer_email_from_request();
         ob_start();
         echo '<div class="scbc-portal">';
         echo '<h3>Client Portal 6 Week Mentorship</h3>';
@@ -1555,7 +1566,7 @@ class Stripe_Calendar_Booking_Cards
             $entry = $this->get_booking_entry_by_session($session_id);
             $email = (is_array($entry) && !empty($entry['customer_email'])) ? sanitize_email((string) $entry['customer_email']) : '';
             $this->log_event('checkout_return_already_processed', 'Checkout return session already processed.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'customer_email' => $email));
-            wp_safe_redirect($this->build_success_redirect_url($slot_id, $email));
+            wp_safe_redirect($this->build_success_redirect_url($slot_id, $email, $session_id));
             exit;
         }
 
@@ -1580,7 +1591,7 @@ class Stripe_Calendar_Booking_Cards
         $this->finalize_booking($slot_id, $session_data, 'success_redirect');
         $success_email = isset($session_data['customer_details']['email']) ? sanitize_email($session_data['customer_details']['email']) : '';
         $this->log_event('checkout_return_success', 'Checkout return finalized booking.', array('slot_id' => $slot_id, 'session_id' => $session_id, 'customer_email' => $success_email));
-        wp_safe_redirect($this->build_success_redirect_url($slot_id, $success_email));
+        wp_safe_redirect($this->build_success_redirect_url($slot_id, $success_email, $session_id));
         exit;
     }
 
@@ -1659,6 +1670,10 @@ class Stripe_Calendar_Booking_Cards
         $timestamp = wp_next_scheduled('scbc_hourly_reminder_event');
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'scbc_hourly_reminder_event');
+        }
+        $reconcile_timestamp = wp_next_scheduled('scbc_reconcile_event');
+        if ($reconcile_timestamp) {
+            wp_unschedule_event($reconcile_timestamp, 'scbc_reconcile_event');
         }
     }
 
@@ -2441,11 +2456,11 @@ class Stripe_Calendar_Booking_Cards
         exit;
     }
 
-    private function build_success_redirect_url($slot_id, $customer_email = '')
+    private function build_success_redirect_url($slot_id, $customer_email = '', $session_id = '')
     {
         $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
         $current_url = $request_uri ? home_url($request_uri) : home_url('/');
-        $clean_url = remove_query_arg(array('scbc_stripe_success', 'slot_id', 'session_id', 'scbc_booking', 'scbc_slot', 'scbc_session', 'scbc_email', 'customer_email', 'sched'), $current_url);
+        $clean_url = remove_query_arg(array('scbc_stripe_success', 'slot_id', 'session_id', 'scbc_booking', 'scbc_slot', 'scbc_session', 'scbc_email', 'customer_email', 'customer_ref', 'sched'), $current_url);
 
         $timezone = $this->get_slot_timezone($slot_id);
         $start_raw = (string) get_post_meta($slot_id, '_scbc_start_datetime', true);
@@ -2457,7 +2472,10 @@ class Stripe_Calendar_Booking_Cards
 
         $args = array();
         if (!empty($customer_email)) {
-            $args['customer_email'] = sanitize_email($customer_email);
+            $customer_ref = $this->create_customer_ref_token($customer_email, $slot_id, $session_id);
+            if (!empty($customer_ref)) {
+                $args['customer_ref'] = $customer_ref;
+            }
         }
         if (!empty($sched)) {
             $args['sched'] = $sched;
