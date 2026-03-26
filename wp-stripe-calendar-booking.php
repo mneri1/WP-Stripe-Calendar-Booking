@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.18
+ * Version: 1.8.19
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.18');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.19');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.18', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.19', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.18');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.19');
     }
 
     public function render_shortcode()
@@ -1411,6 +1411,12 @@ class Stripe_Calendar_Booking_Cards
                 $is_upcoming = ($entry_ts > current_time('timestamp', true));
                 $status_label = $is_upcoming ? 'Upcoming' : 'Completed';
                 $status_class = $is_upcoming ? 'is-upcoming' : 'is-completed';
+                $is_today = false;
+                if ($entry_ts > 0) {
+                    $slot_day = wp_date('Y-m-d', $entry_ts, new DateTimeZone($timezone));
+                    $today_day = wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($timezone));
+                    $is_today = ($slot_day === $today_day);
+                }
                 $title = $slot_id > 0 ? get_the_title($slot_id) : 'Booked Session';
                 $date_line = $this->format_slot_datetime($slot_start, $timezone, 'D, M j');
                 $time_line = $this->format_slot_datetime($slot_start, $timezone, get_option('time_format')) . ' ' . $timezone;
@@ -1444,6 +1450,9 @@ class Stripe_Calendar_Booking_Cards
                 ));
                 echo '<article class="scbc-confirmed-card ' . esc_attr($status_class) . '">';
                 echo '<p class="scbc-confirmed-badge">' . esc_html($status_label) . '</p>';
+                if ($is_today) {
+                    echo '<p class="scbc-confirmed-badge is-today">Today</p>';
+                }
                 echo '<h4>' . esc_html((string) $title) . '</h4>';
                 echo '<p>' . esc_html((string) $date_line) . '</p>';
                 echo '<p>' . esc_html((string) $time_line) . '</p>';

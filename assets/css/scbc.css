@@ -331,6 +331,13 @@
     border-color: #cbd5e1;
 }
 
+.scbc-confirmed-badge.is-today {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+    margin-left: 6px;
+}
+
 .scbc-confirmed-card.is-completed {
     border-color: #dbe3ee;
     background: #f8fafc;
