@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.0
+ * Version: 1.8.1
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -568,6 +568,16 @@ class Stripe_Calendar_Booking_Cards
             return;
         }
 
+        if (
+            isset($_POST['scbc_run_reconcile_nonce'])
+            && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['scbc_run_reconcile_nonce'])), 'scbc_run_reconcile_now')
+            && isset($_POST['scbc_run_reconcile_now'])
+            && $_POST['scbc_run_reconcile_now'] === '1'
+        ) {
+            $this->process_scheduled_reconciliation();
+            echo '<div class="notice notice-success"><p>Reconciliation run completed.</p></div>';
+        }
+
         $search = isset($_GET['scbc_q']) ? sanitize_text_field(wp_unslash($_GET['scbc_q'])) : '';
         $date_from = isset($_GET['scbc_from']) ? sanitize_text_field(wp_unslash($_GET['scbc_from'])) : '';
         $date_to = isset($_GET['scbc_to']) ? sanitize_text_field(wp_unslash($_GET['scbc_to'])) : '';
@@ -575,10 +585,43 @@ class Stripe_Calendar_Booking_Cards
         $per_page = 25;
         $entries_page = $this->get_reconciled_entries_page($paged, $per_page, $search, $date_from, $date_to);
         $entries = $entries_page['rows'];
+        $summary_rows = $this->get_reconciliation_daily_summary(7);
+        $export_url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'post_type' => 'scbc_slot',
+                    'page' => 'scbc-reconciliations',
+                    'scbc_export' => 'reconciliations',
+                    'scbc_q' => $search,
+                    'scbc_from' => $date_from,
+                    'scbc_to' => $date_to,
+                ),
+                admin_url('edit.php')
+            ),
+            'scbc_export_reconciliations'
+        );
 
         echo '<div class="wrap">';
         echo '<h1>Reconciliations</h1>';
         echo '<p>Bookings finalized by scheduled reconciliation are listed here.</p>';
+        echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px;">';
+        foreach ($summary_rows as $summary) {
+            $date_label = isset($summary['day']) ? (string) $summary['day'] : '';
+            $count = isset($summary['count']) ? (int) $summary['count'] : 0;
+            $amount = isset($summary['amount']) ? (float) $summary['amount'] : 0;
+            echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:170px;">';
+            echo '<strong>' . esc_html($date_label) . '</strong><br>';
+            echo esc_html((string) $count . ' reconciled') . '<br>';
+            echo esc_html('Amount ' . strtoupper($this->get_settings()['currency']) . ' ' . number_format_i18n($amount, 2));
+            echo '</div>';
+        }
+        echo '</div>';
+        echo '<p><a class="button button-secondary" href="' . esc_url($export_url) . '">Export Reconciliations CSV</a></p>';
+        echo '<form method="post" style="margin:0 0 12px;">';
+        wp_nonce_field('scbc_run_reconcile_now', 'scbc_run_reconcile_nonce');
+        echo '<input type="hidden" name="scbc_run_reconcile_now" value="1">';
+        echo '<button type="submit" class="button button-primary">Run Reconciliation Now</button>';
+        echo '</form>';
         echo '<form method="get" style="margin:12px 0;">';
         echo '<input type="hidden" name="post_type" value="scbc_slot">';
         echo '<input type="hidden" name="page" value="scbc-reconciliations">';
@@ -856,8 +899,45 @@ class Stripe_Calendar_Booking_Cards
             return;
         }
         $export_type = sanitize_text_field(wp_unslash($_GET['scbc_export']));
-        if ($export_type !== 'bookings' && $export_type !== 'entries') {
+        if ($export_type !== 'bookings' && $export_type !== 'entries' && $export_type !== 'reconciliations') {
             return;
+        }
+
+        if ($export_type === 'reconciliations') {
+            check_admin_referer('scbc_export_reconciliations');
+            $search = isset($_GET['scbc_q']) ? sanitize_text_field(wp_unslash($_GET['scbc_q'])) : '';
+            $date_from = isset($_GET['scbc_from']) ? sanitize_text_field(wp_unslash($_GET['scbc_from'])) : '';
+            $date_to = isset($_GET['scbc_to']) ? sanitize_text_field(wp_unslash($_GET['scbc_to'])) : '';
+            $rows = $this->get_reconciled_entries_page(1, 1000, $search, $date_from, $date_to);
+            $entries = $rows['rows'];
+            nocache_headers();
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename=scbc-reconciliations-' . gmdate('Ymd-His') . '.csv');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, array('Reconciled At', 'Session ID', 'Slot ID', 'Slot Title', 'Customer Email', 'Amount', 'Currency', 'Booking Source'));
+            foreach ($entries as $entry) {
+                $slot_id = (int) $entry['slot_id'];
+                fputcsv($out, array(
+                    (string) $entry['booked_at'],
+                    (string) $entry['session_id'],
+                    $slot_id,
+                    get_the_title($slot_id),
+                    (string) $entry['customer_email'],
+                    number_format(((float) $entry['amount_total']) / 100, 2, '.', ''),
+                    strtoupper((string) $entry['currency']),
+                    (string) $entry['booking_source'],
+                ));
+            }
+            fclose($out);
+            $this->log_event('export_reconciliations_csv', 'Reconciliations CSV was exported.', array(
+                'rows' => count($entries),
+                'search' => $search,
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'user_id' => get_current_user_id(),
+                'user_ip' => $this->get_request_ip(),
+            ));
+            exit;
         }
 
         if ($export_type === 'entries') {
@@ -970,9 +1050,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.4');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.0');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.7.4', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.0', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -980,6 +1060,7 @@ class Stripe_Calendar_Booking_Cards
         $allowed = array(
             'scbc_slot_page_scbc-calendar-view',
             'scbc_slot_page_scbc-booking-entries',
+            'scbc_slot_page_scbc-reconciliations',
             'scbc_slot_page_scbc-export-bookings',
             'settings_page_scbc-settings',
             'post.php',
@@ -988,7 +1069,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.7.4');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.0');
     }
 
     public function render_shortcode()
@@ -2148,6 +2229,42 @@ class Stripe_Calendar_Booking_Cards
             $since
         ));
         return is_numeric($count) ? (int) $count : 0;
+    }
+
+    private function get_reconciliation_daily_summary($days = 7)
+    {
+        global $wpdb;
+        $table = $this->get_bookings_table_name();
+        $safe_days = max(1, min(30, absint($days)));
+        $since = gmdate('Y-m-d H:i:s', time() - ($safe_days * DAY_IN_SECONDS));
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DATE(booked_at) AS day_key, COUNT(*) AS total_rows, SUM(amount_total) AS total_amount FROM {$table} WHERE booking_source = %s AND booked_at >= %s GROUP BY DATE(booked_at) ORDER BY day_key DESC LIMIT %d",
+                'reconcile_cron',
+                $since,
+                $safe_days
+            ),
+            ARRAY_A
+        );
+
+        if (!is_array($rows)) {
+            return array();
+        }
+
+        $items = array();
+        foreach ($rows as $row) {
+            $day_key = isset($row['day_key']) ? (string) $row['day_key'] : '';
+            if ($day_key === '') {
+                continue;
+            }
+            $items[] = array(
+                'day' => $day_key,
+                'count' => isset($row['total_rows']) ? (int) $row['total_rows'] : 0,
+                'amount' => isset($row['total_amount']) ? ((float) $row['total_amount']) / 100 : 0,
+            );
+        }
+
+        return $items;
     }
 
     private function render_reminder_template($type, $tokens)
