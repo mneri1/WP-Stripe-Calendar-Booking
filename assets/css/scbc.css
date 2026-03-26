@@ -237,6 +237,89 @@
     margin: 0 0 18px;
 }
 
+.scbc-front-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.scbc-main-column {
+    min-width: 0;
+}
+
+.scbc-confirmed-panel {
+    background: #ffffff;
+    border: 1px solid #dbe3ee;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    padding: 12px;
+}
+
+.scbc-confirmed-title {
+    margin: 0 0 4px;
+    color: #0f172a;
+    font-size: 18px;
+}
+
+.scbc-confirmed-email {
+    margin: 0 0 10px;
+    color: #334155;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.scbc-confirmed-empty {
+    margin: 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.scbc-confirmed-list {
+    display: grid;
+    gap: 10px;
+}
+
+.scbc-confirmed-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px;
+}
+
+.scbc-confirmed-badge {
+    display: inline-block;
+    margin: 0 0 6px;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.scbc-confirmed-card h4 {
+    margin: 0 0 6px;
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.scbc-confirmed-card p {
+    margin: 0 0 5px;
+    color: #334155;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.scbc-confirmed-ics {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .scbc-list-toolbar {
     display: grid;
     gap: 8px;
@@ -917,6 +1000,17 @@ body.scbc-modal-open {
 
     .scbc-modal {
         align-items: center;
+    }
+
+    .scbc-front-grid {
+        grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+    }
+
+    .scbc-confirmed-panel {
+        position: sticky;
+        top: 14px;
     }
 }
 

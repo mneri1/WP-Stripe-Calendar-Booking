@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.15
+ * Version: 1.8.16
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.9');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.16');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.9', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.16', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.9');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.16');
     }
 
     public function render_shortcode()
@@ -1360,6 +1360,66 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-program-banner">';
         echo '<strong>6 Week Mentorship Program</strong> with ' . esc_html((string) self::PROGRAM_SESSIONS) . ' total sessions.';
         echo '</div>';
+        $confirmed_email = $notice_email;
+        if (empty($confirmed_email) && is_user_logged_in()) {
+            $current_user = wp_get_current_user();
+            if ($current_user instanceof WP_User && !empty($current_user->user_email) && is_email($current_user->user_email)) {
+                $confirmed_email = sanitize_email($current_user->user_email);
+            }
+        }
+        $confirmed_entries = !empty($confirmed_email) ? $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS) : array();
+        if (!empty($confirmed_entries)) {
+            usort($confirmed_entries, static function ($a, $b) {
+                $a_time = isset($a['booked_at']) ? (string) $a['booked_at'] : '';
+                $b_time = isset($b['booked_at']) ? (string) $b['booked_at'] : '';
+                return strcmp($b_time, $a_time);
+            });
+        }
+
+        echo '<div class="scbc-front-grid">';
+        echo '<aside class="scbc-confirmed-panel">';
+        echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
+        if (!empty($confirmed_email)) {
+            echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
+        }
+        if (!empty($confirmed_entries)) {
+            echo '<div class="scbc-confirmed-list">';
+            foreach ($confirmed_entries as $entry) {
+                $slot_id = isset($entry['slot_id']) ? (int) $entry['slot_id'] : 0;
+                $timezone = $this->sanitize_timezone(isset($entry['slot_timezone']) ? (string) $entry['slot_timezone'] : 'UTC');
+                $slot_start = isset($entry['slot_start']) ? (string) $entry['slot_start'] : '';
+                $entry_ts = $this->get_slot_timestamp($slot_start, $timezone);
+                $title = $slot_id > 0 ? get_the_title($slot_id) : 'Booked Session';
+                $date_line = $this->format_slot_datetime($slot_start, $timezone, 'D, M j');
+                $time_line = $this->format_slot_datetime($slot_start, $timezone, get_option('time_format')) . ' ' . $timezone;
+                if ($entry_ts > 0) {
+                    $time_line .= ' ' . $this->get_gmt_offset_label($timezone, $entry_ts);
+                }
+                $amount_line = strtoupper((string) (isset($entry['currency']) ? $entry['currency'] : $options['currency'])) . ' ' . number_format_i18n(((float) (isset($entry['amount_total']) ? $entry['amount_total'] : 0)) / 100, 2);
+                $ics_url = add_query_arg(
+                    array(
+                        'scbc_download_ics' => '1',
+                        'slot_id' => $slot_id,
+                        'session_id' => isset($entry['session_id']) ? (string) $entry['session_id'] : '',
+                    ),
+                    home_url('/')
+                );
+                echo '<article class="scbc-confirmed-card">';
+                echo '<p class="scbc-confirmed-badge">Confirmed</p>';
+                echo '<h4>' . esc_html((string) $title) . '</h4>';
+                echo '<p>' . esc_html((string) $date_line) . '</p>';
+                echo '<p>' . esc_html((string) $time_line) . '</p>';
+                echo '<p><strong>' . esc_html((string) $amount_line) . '</strong></p>';
+                echo '<a class="scbc-confirmed-ics" href="' . esc_url($ics_url) . '">Download iCal</a>';
+                echo '</article>';
+            }
+            echo '</div>';
+        } else {
+            echo '<p class="scbc-confirmed-empty">No confirmed bookings yet. Once a session is paid, it will appear here.</p>';
+        }
+        echo '</aside>';
+
+        echo '<div class="scbc-main-column">';
         echo '<div class="scbc-list-toolbar">';
         echo '<label for="scbc-month-filter"><strong>Filter by Month</strong></label>';
         echo '<select id="scbc-month-filter" class="scbc-month-filter">';
@@ -1383,6 +1443,8 @@ class Stripe_Calendar_Booking_Cards
         echo '<button id="scbc-load-more" class="scbc-nav-btn" data-page="' . esc_attr((string) $first_page['page']) . '" data-max-pages="' . esc_attr((string) $first_page['max_pages']) . '"' . ($has_more ? '' : ' disabled') . '>' . esc_html($has_more ? 'Load More Schedules' : 'No more schedules') . '</button>';
         echo '</div>';
         echo '<div id="scbc-pagination" class="scbc-pagination-wrap">' . $this->render_pagination_controls($first_page['page'], $first_page['max_pages']) . '</div>';
+        echo '</div>';
+        echo '</div>';
 
         echo '<div id="scbc-slot-modal" class="scbc-modal" aria-hidden="true">';
         echo '<div class="scbc-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scbc-modal-title">';
