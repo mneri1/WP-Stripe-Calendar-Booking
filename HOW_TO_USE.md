@@ -10,20 +10,24 @@ This guide is written for non tech users.
 
 ## Setup Steps
 ### Step 1 Activate Plugin
+First click: `Plugins` in the left menu.
 1. Go to Plugins.
 2. Upload plugin zip.
 3. Click Activate.
 
 ### Step 2 Open Settings
+First click: `Settings` in the left menu.
 1. Go to `Settings > Stripe Booking`.
 2. Follow the 3 step cards at top.
 
 ### Step 3 Add Stripe Keys
+First click: inside `Stripe Publishable Key` box.
 1. Paste Publishable Key.
 2. Paste Secret Key.
 3. Click Save.
 
 ### Step 4 Make Slots
+First click: `Booking Slots` in the left menu.
 1. Go to `Booking Slots > Add New`.
 2. Add title.
 3. Pick date.
@@ -35,18 +39,21 @@ This guide is written for non tech users.
 9. Click Publish.
 
 ### Step 5 Add Booking Page
+First click: `Pages` in the left menu.
 1. Open your booking page.
 2. Add shortcode block.
 3. Paste `[stripe_booking_calendar]`.
 4. Save page.
 
 ### Step 6 Add Client Portal Page
+First click: `Pages > Add New`.
 1. Create another page.
 2. Add shortcode block.
 3. Paste `[scbc_client_portal]`.
 4. Save page.
 
 ## First Test
+First click: open your booking page in browser.
 1. Open booking page.
 2. Type test email.
 3. Click a slot.
@@ -57,6 +64,7 @@ This guide is written for non tech users.
 8. Confirm iCal download works.
 
 ## Where To Check In Admin
+First click: `Booking Slots` in the left menu.
 1. `Booking Slots > Booking Entries` shows paid bookings.
 2. `Booking Slots > Reconciliations` shows auto fixed paid bookings.
 3. `Booking Slots > Activity Logs` shows system actions.
@@ -68,6 +76,7 @@ This guide is written for non tech users.
 3. Old logs auto delete after 90 days.
 
 ## If Something Looks Wrong
+First click: `Settings > Stripe Booking`.
 1. Check keys in settings.
 2. Check Booking Entries.
 3. Check Reconciliations page.
