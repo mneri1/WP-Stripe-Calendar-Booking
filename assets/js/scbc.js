@@ -425,5 +425,43 @@
                 window.scrollTo({ top: slotList ? slotList.offsetTop - 110 : 0, behavior: 'smooth' });
             });
         }
+
+        document.addEventListener('click', function (event) {
+            var copyBtn = event.target.closest('.scbc-confirmed-copy');
+            if (!copyBtn) {
+                return;
+            }
+            var text = copyBtn.getAttribute('data-copy') || '';
+            if (!text) {
+                return;
+            }
+            var resetLabel = function () {
+                copyBtn.textContent = 'Copy Meeting Details';
+            };
+            var setCopiedLabel = function () {
+                copyBtn.textContent = 'Copied';
+                setTimeout(resetLabel, 1500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(setCopiedLabel).catch(function () {
+                    resetLabel();
+                });
+                return;
+            }
+            var temp = document.createElement('textarea');
+            temp.value = text;
+            temp.setAttribute('readonly', 'readonly');
+            temp.style.position = 'absolute';
+            temp.style.left = '-9999px';
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+                setCopiedLabel();
+            } catch (e) {
+                resetLabel();
+            }
+            document.body.removeChild(temp);
+        });
     });
 })();

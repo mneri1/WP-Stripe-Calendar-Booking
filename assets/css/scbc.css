@@ -325,6 +325,22 @@
     letter-spacing: 0.01em;
 }
 
+.scbc-confirmed-card.is-completed .scbc-confirmed-badge {
+    background: #eef2f7;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+.scbc-confirmed-card.is-completed {
+    border-color: #dbe3ee;
+    background: #f8fafc;
+}
+
+.scbc-confirmed-card.is-upcoming {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
 .scbc-confirmed-card h4 {
     margin: 0 0 6px;
     color: #0f172a;
@@ -351,6 +367,21 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.scbc-confirmed-copy {
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.scbc-confirmed-copy:hover {
+    background: #f1f5f9;
 }
 
 .scbc-confirmed-portal {

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.17
+ * Version: 1.8.18
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.17');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.18');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.17', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.18', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.17');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.18');
     }
 
     public function render_shortcode()
@@ -1408,11 +1408,18 @@ class Stripe_Calendar_Booking_Cards
                 $timezone = $this->sanitize_timezone(isset($entry['slot_timezone']) ? (string) $entry['slot_timezone'] : 'UTC');
                 $slot_start = isset($entry['slot_start']) ? (string) $entry['slot_start'] : '';
                 $entry_ts = $this->get_slot_timestamp($slot_start, $timezone);
+                $is_upcoming = ($entry_ts > current_time('timestamp', true));
+                $status_label = $is_upcoming ? 'Upcoming' : 'Completed';
+                $status_class = $is_upcoming ? 'is-upcoming' : 'is-completed';
                 $title = $slot_id > 0 ? get_the_title($slot_id) : 'Booked Session';
                 $date_line = $this->format_slot_datetime($slot_start, $timezone, 'D, M j');
                 $time_line = $this->format_slot_datetime($slot_start, $timezone, get_option('time_format')) . ' ' . $timezone;
                 if ($entry_ts > 0) {
                     $time_line .= ' ' . $this->get_gmt_offset_label($timezone, $entry_ts);
+                }
+                $booked_on = '';
+                if (!empty($entry['booked_at'])) {
+                    $booked_on = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), (string) $entry['booked_at']);
                 }
                 $amount_line = strtoupper((string) (isset($entry['currency']) ? $entry['currency'] : $options['currency'])) . ' ' . number_format_i18n(((float) (isset($entry['amount_total']) ? $entry['amount_total'] : 0)) / 100, 2);
                 $ics_url = add_query_arg(
@@ -1427,13 +1434,25 @@ class Stripe_Calendar_Booking_Cards
                 $portal_url = !empty($portal_ref)
                     ? add_query_arg('customer_ref', rawurlencode($portal_ref), home_url('/'))
                     : add_query_arg('scbc_email', rawurlencode($confirmed_email), home_url('/'));
-                echo '<article class="scbc-confirmed-card">';
-                echo '<p class="scbc-confirmed-badge">Confirmed</p>';
+                $copy_payload = implode("\n", array(
+                    'Booking: ' . (string) $title,
+                    'Date: ' . (string) $date_line,
+                    'Time: ' . (string) $time_line,
+                    'Amount: ' . (string) $amount_line,
+                    'Status: ' . (string) $status_label,
+                    'Booked On: ' . (string) ($booked_on !== '' ? $booked_on : 'N/A'),
+                ));
+                echo '<article class="scbc-confirmed-card ' . esc_attr($status_class) . '">';
+                echo '<p class="scbc-confirmed-badge">' . esc_html($status_label) . '</p>';
                 echo '<h4>' . esc_html((string) $title) . '</h4>';
                 echo '<p>' . esc_html((string) $date_line) . '</p>';
                 echo '<p>' . esc_html((string) $time_line) . '</p>';
+                if ($booked_on !== '') {
+                    echo '<p><strong>Booked On:</strong> ' . esc_html((string) $booked_on) . '</p>';
+                }
                 echo '<p><strong>' . esc_html((string) $amount_line) . '</strong></p>';
                 echo '<div class="scbc-confirmed-actions">';
+                echo '<button type="button" class="scbc-confirmed-copy" data-copy="' . esc_attr($copy_payload) . '">Copy Meeting Details</button>';
                 echo '<a class="scbc-confirmed-portal" href="' . esc_url($portal_url) . '">Open Client Portal</a>';
                 echo '<a class="scbc-confirmed-ics" href="' . esc_url($ics_url) . '">Download iCal</a>';
                 echo '</div>';
