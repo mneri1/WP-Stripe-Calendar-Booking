@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.21
+ * Version: 1.8.22
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.21');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.22');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.21', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.22', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.21');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.22');
     }
 
     public function render_shortcode()
@@ -1423,6 +1423,8 @@ class Stripe_Calendar_Booking_Cards
         }
         if (!empty($confirmed_entries)) {
             echo '<div class="scbc-confirmed-list">';
+            $printed_today_upcoming = false;
+            $printed_today_completed = false;
             foreach ($confirmed_entries as $entry) {
                 $slot_id = isset($entry['slot_id']) ? (int) $entry['slot_id'] : 0;
                 $timezone = $this->sanitize_timezone(isset($entry['slot_timezone']) ? (string) $entry['slot_timezone'] : 'UTC');
@@ -1436,6 +1438,14 @@ class Stripe_Calendar_Booking_Cards
                     $slot_day = wp_date('Y-m-d', $entry_ts, new DateTimeZone($timezone));
                     $today_day = wp_date('Y-m-d', current_time('timestamp', true), new DateTimeZone($timezone));
                     $is_today = ($slot_day === $today_day);
+                }
+                if ($is_today && $is_upcoming && !$printed_today_upcoming) {
+                    echo '<h4 class="scbc-confirmed-divider">Today Upcoming</h4>';
+                    $printed_today_upcoming = true;
+                }
+                if ($is_today && !$is_upcoming && !$printed_today_completed) {
+                    echo '<h4 class="scbc-confirmed-divider">Today Completed</h4>';
+                    $printed_today_completed = true;
                 }
                 $title = $slot_id > 0 ? get_the_title($slot_id) : 'Booked Session';
                 $date_line = $this->format_slot_datetime($slot_start, $timezone, 'D, M j');
@@ -1489,10 +1499,12 @@ class Stripe_Calendar_Booking_Cards
                     'Status: ' . (string) $status_label,
                     'Booked On: ' . (string) ($booked_on !== '' ? $booked_on : 'N/A'),
                 ));
-                echo '<article class="scbc-confirmed-card ' . esc_attr($status_class) . '">';
-                echo '<p class="scbc-confirmed-badge">' . esc_html($status_label) . '</p>';
+                echo '<article class="scbc-confirmed-card ' . esc_attr($status_class) . '" data-start-ts="' . esc_attr((string) $entry_ts) . '" data-timezone="' . esc_attr($timezone) . '">';
+                echo '<p class="scbc-confirmed-badge scbc-confirmed-status">' . esc_html($status_label) . '</p>';
                 if ($is_today) {
-                    echo '<p class="scbc-confirmed-badge is-today">Today</p>';
+                    echo '<p class="scbc-confirmed-badge is-today scbc-today-badge">Today</p>';
+                } else {
+                    echo '<p class="scbc-confirmed-badge is-today scbc-today-badge" hidden>Today</p>';
                 }
                 echo '<h4>' . esc_html((string) $title) . '</h4>';
                 echo '<p>' . esc_html((string) $date_line) . '</p>';

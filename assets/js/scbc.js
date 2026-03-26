@@ -499,5 +499,59 @@
 
         refreshConfirmedRelativeTimes();
         window.setInterval(refreshConfirmedRelativeTimes, 60000);
+
+        function getYmdInTimezone(unixTs, timezone) {
+            var date = new Date(unixTs * 1000);
+            var parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone || 'UTC',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            var y = '';
+            var m = '';
+            var d = '';
+            parts.forEach(function (part) {
+                if (part.type === 'year') { y = part.value; }
+                if (part.type === 'month') { m = part.value; }
+                if (part.type === 'day') { d = part.value; }
+            });
+            return y + '-' + m + '-' + d;
+        }
+
+        function refreshConfirmedTodayState() {
+            var cards = document.querySelectorAll('.scbc-confirmed-card[data-start-ts][data-timezone]');
+            if (!cards.length) {
+                return;
+            }
+            var nowTs = Math.floor(Date.now() / 1000);
+            cards.forEach(function (card) {
+                var ts = parseInt(card.getAttribute('data-start-ts') || '0', 10);
+                var tz = card.getAttribute('data-timezone') || 'UTC';
+                if (!ts || isNaN(ts)) {
+                    return;
+                }
+                var startDay = getYmdInTimezone(ts, tz);
+                var todayDay = getYmdInTimezone(nowTs, tz);
+                var isToday = startDay === todayDay;
+                var isUpcoming = ts > nowTs;
+
+                card.classList.toggle('is-upcoming', isUpcoming);
+                card.classList.toggle('is-completed', !isUpcoming);
+
+                var statusBadge = card.querySelector('.scbc-confirmed-status');
+                if (statusBadge) {
+                    statusBadge.textContent = isUpcoming ? 'Upcoming' : 'Completed';
+                }
+
+                var todayBadge = card.querySelector('.scbc-today-badge');
+                if (todayBadge) {
+                    todayBadge.hidden = !isToday;
+                }
+            });
+        }
+
+        refreshConfirmedTodayState();
+        window.setInterval(refreshConfirmedTodayState, 120000);
     });
 })();
