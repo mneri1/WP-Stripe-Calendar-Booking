@@ -420,6 +420,17 @@
             document.body.classList.add('scbc-modal-open');
         }
 
+        function getClosestElement(target, selector) {
+            if (!target) {
+                return null;
+            }
+            var node = target.nodeType === 1 ? target : target.parentElement;
+            if (!node || typeof node.closest !== 'function') {
+                return null;
+            }
+            return node.closest(selector);
+        }
+
         document.addEventListener('keydown', function (event) {
             if (event.key !== 'Escape') {
                 return;
@@ -468,12 +479,24 @@
         }
 
         document.addEventListener('click', function (event) {
-            var showBtn = event.target.closest('.scbc-confirmed-show');
+            var showBtn = getClosestElement(event.target, '.scbc-confirmed-show');
             if (!showBtn) {
                 return;
             }
             openConfirmedModal(showBtn);
         });
+
+        var confirmedShowButtons = document.querySelectorAll('.scbc-confirmed-show');
+        if (confirmedShowButtons.length) {
+            confirmedShowButtons.forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    if (event && typeof event.stopPropagation === 'function') {
+                        event.stopPropagation();
+                    }
+                    openConfirmedModal(button);
+                });
+            });
+        }
 
         if (confirmedModalClose) {
             confirmedModalClose.addEventListener('click', closeConfirmedModal);
