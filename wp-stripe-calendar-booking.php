@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.12
+ * Version: 1.8.13
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+

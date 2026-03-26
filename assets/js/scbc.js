@@ -251,21 +251,41 @@
             document.body.classList.add('scbc-modal-open');
         }
 
+        function getActiveModalEmailInput(actionButton) {
+            if (actionButton) {
+                var dialog = actionButton.closest('.scbc-modal-dialog');
+                if (dialog) {
+                    var scoped = dialog.querySelector('#scbc-modal-customer-email');
+                    if (scoped) {
+                        return scoped;
+                    }
+                }
+            }
+            if (modal && modal.getAttribute('aria-hidden') === 'false') {
+                var openModalInput = modal.querySelector('#scbc-modal-customer-email');
+                if (openModalInput) {
+                    return openModalInput;
+                }
+            }
+            return modalEmailInput;
+        }
+
         function startCheckout(slotId, actionButton) {
-            var customerEmail = modalEmailInput ? modalEmailInput.value.trim() : '';
+            var emailInput = getActiveModalEmailInput(actionButton);
+            var customerEmail = emailInput ? emailInput.value.trim() : '';
             if (!slotId) {
                 return;
             }
             if (!customerEmail) {
                 showModalError('Please type your email first.');
-                if (modalEmailInput) {
-                    modalEmailInput.focus();
+                if (emailInput) {
+                    emailInput.focus();
                 }
                 return;
             }
-            if (modalEmailInput && !modalEmailInput.checkValidity()) {
+            if (emailInput && !emailInput.checkValidity()) {
                 showModalError('Please enter a valid email address.');
-                modalEmailInput.focus();
+                emailInput.focus();
                 return;
             }
 
