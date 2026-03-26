@@ -1357,6 +1357,9 @@ class Stripe_Calendar_Booking_Cards
         $notice_slot = isset($_GET['scbc_slot']) ? absint(wp_unslash($_GET['scbc_slot'])) : 0;
         $notice_session = isset($_GET['scbc_session']) ? sanitize_text_field(wp_unslash($_GET['scbc_session'])) : '';
         $notice_email = $this->resolve_customer_email_from_request();
+        if (is_user_logged_in() && !empty($notice_email) && is_email($notice_email)) {
+            update_user_meta(get_current_user_id(), 'scbc_last_checkout_email', sanitize_email($notice_email));
+        }
         if ($notice === 'success') {
             echo '<div class="scbc-notice scbc-success">Payment confirmed. Your booking is reserved.';
             if ($notice_slot > 0 && !empty($notice_session)) {
