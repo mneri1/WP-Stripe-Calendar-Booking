@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.10
+ * Version: 1.8.11
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -524,7 +524,7 @@ class Stripe_Calendar_Booking_Cards
         do_settings_sections('scbc-settings');
         submit_button();
         echo '</form>';
-        echo '<script>(function(){var mode=document.getElementById("scbc-field-stripe_mode");if(!mode){return;}var liveRows=["live_publishable_key","live_secret_key"];var testRows=["test_publishable_key","test_secret_key"];function setRow(id,show){var row=document.getElementById(id);if(!row){return;}row.style.display=show?"":"none";}function sync(){var v=mode.value==="test"?"test":"live";for(var i=0;i<liveRows.length;i++){setRow(liveRows[i],v==="live");}for(var j=0;j<testRows.length;j++){setRow(testRows[j],v==="test");}}mode.addEventListener("change",sync);sync();})();</script>';
+        echo '<script>(function(){var mode=document.getElementById("scbc-field-stripe_mode");if(!mode){return;}var liveRows=["live_publishable_key","live_secret_key"];var testRows=["test_publishable_key","test_secret_key"];function setRow(id,show){var row=document.getElementById(id);if(!row){return;}row.style.display=show?"":"none";}function ensureBadge(row,modeLabel){var header=row.querySelector("th");if(!header){return;}var badge=header.querySelector(".scbc-inline-mode-badge");if(!badge){badge=document.createElement("span");badge.className="scbc-inline-mode-badge";header.appendChild(document.createTextNode(" "));header.appendChild(badge);}badge.textContent=modeLabel + " key";badge.classList.toggle("is-live",modeLabel==="LIVE");badge.classList.toggle("is-test",modeLabel==="TEST");}function sync(){var v=mode.value==="test"?"test":"live";for(var i=0;i<liveRows.length;i++){var liveRow=document.getElementById(liveRows[i]);if(liveRow){ensureBadge(liveRow,"LIVE");}setRow(liveRows[i],v==="live");}for(var j=0;j<testRows.length;j++){var testRow=document.getElementById(testRows[j]);if(testRow){ensureBadge(testRow,"TEST");}setRow(testRows[j],v==="test");}}var style=document.createElement("style");style.textContent=".scbc-inline-mode-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.4;vertical-align:middle}.scbc-inline-mode-badge.is-live{background:#dcfce7;color:#166534;border:1px solid #86efac}.scbc-inline-mode-badge.is-test{background:#e0f2fe;color:#0c4a6e;border:1px solid #7dd3fc}";document.head.appendChild(style);mode.addEventListener("change",sync);sync();})();</script>';
         echo '<div style="max-width:760px;margin-top:20px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:18px;">';
         echo '<h2 style="margin-top:0;">Modal Policy Preview</h2>';
         echo '<p style="margin-top:0;color:#475569;">Mobile modal width preview with frontend style spacing and action button.</p>';
