@@ -545,8 +545,15 @@
 }
 
 .scbc-modal-email-wrap label {
+    display: block;
     margin: 0;
     line-height: 1.2;
+}
+
+.scbc-modal-email-wrap .scbc-email-input {
+    margin-top: 6px;
+    margin-bottom: 4px;
+    max-width: 100%;
 }
 
 .scbc-modal-policy {

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.13
+ * Version: 1.8.14
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1304,13 +1304,13 @@ class Stripe_Calendar_Booking_Cards
             'requestedMonth' => $requested_month,
             'messages' => array(
                 'error' => 'Could not start checkout. Please try again.',
-                'checkoutHelp' => 'If Stripe says Something went wrong, go back and click Continue to Payment again. If it still fails, ask admin to click Test Stripe Connection in settings.',
+                'checkoutHelp' => 'If Stripe says Something went wrong, go back and click BOOK NOW again. If it still fails, ask admin to click Test Stripe Connection in settings.',
                 'loading' => 'Starting checkout...',
                 'loadingSlots' => 'Loading schedules...',
                 'loadMore' => 'Load More Schedules',
                 'noMore' => 'No more schedules',
                 'loadError' => 'Could not load schedules right now.',
-                'modalButton' => 'Continue to Payment',
+                'modalButton' => 'BOOK NOW',
             ),
         ));
 
@@ -1390,7 +1390,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<h3 id="scbc-modal-title">Booking Details</h3>';
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
         echo '<div class="scbc-modal-email-wrap">';
-        echo '<label for="scbc-modal-customer-email"><strong>Client Email</strong></label>';
+        echo '<label for="scbc-modal-customer-email"><strong>Client Email: </strong></label>';
         echo '<input type="email" id="scbc-modal-customer-email" class="scbc-email-input" placeholder="Required: you@example.com" autocomplete="email" required>';
         echo '</div>';
         echo '<div class="scbc-modal-policy">';
@@ -1399,10 +1399,10 @@ class Stripe_Calendar_Booking_Cards
         echo '<p><strong>Cancellation Policy</strong>' . $this->render_help_tip('This tells cancel rules.', 'Like this: Cancel 24 hours early.') . '</p>';
         echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
-        echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
+        echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">BOOK NOW</button>';
         echo '<button type="button" id="scbc-modal-retry-btn" class="scbc-book-btn scbc-retry-btn" data-slot-id="" hidden>Retry Payment</button>';
         echo '<div id="scbc-modal-error" class="scbc-inline-error" hidden></div>';
-        echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click Continue to Payment again.</p>';
+        echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click BOOK NOW again.</p>';
         echo '</div>';
         echo '</div>';
         $this->render_help_tip_script();

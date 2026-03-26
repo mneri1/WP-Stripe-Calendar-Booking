@@ -213,7 +213,7 @@
             if (modalBookBtn) {
                 modalBookBtn.setAttribute('data-slot-id', '');
                 modalBookBtn.disabled = false;
-                modalBookBtn.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
+                modalBookBtn.textContent = SCBC_DATA.messages.modalButton || 'BOOK NOW';
             }
             if (modalRetryBtn) {
                 modalRetryBtn.setAttribute('data-slot-id', '');
@@ -323,7 +323,7 @@
                     var help = SCBC_DATA.messages.checkoutHelp || '';
                     showModalError(help ? (base + ' ' + help) : base);
                     actionButton.disabled = false;
-                    actionButton.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
+                    actionButton.textContent = SCBC_DATA.messages.modalButton || 'BOOK NOW';
                     if (modalRetryBtn) {
                         modalRetryBtn.hidden = false;
                         modalRetryBtn.disabled = false;
