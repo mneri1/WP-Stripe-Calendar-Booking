@@ -615,11 +615,17 @@
                     refreshConfirmedRelativeTimes();
                     refreshConfirmedTodayState();
                     updateConfirmedRefreshedTime();
+                    if (confirmedRefreshedLabel) {
+                        confirmedRefreshedLabel.classList.add('is-success');
+                    }
                     confirmedRefreshBtn.disabled = false;
                     confirmedRefreshBtn.classList.remove('is-loading');
                     confirmedRefreshBtn.classList.add('is-success');
                     confirmedRefreshBtn.textContent = 'Refreshed ✓';
                     window.setTimeout(function () {
+                        if (confirmedRefreshedLabel) {
+                            confirmedRefreshedLabel.classList.remove('is-success');
+                        }
                         confirmedRefreshBtn.classList.remove('is-success');
                         confirmedRefreshBtn.textContent = 'Refresh Now';
                     }, 1300);

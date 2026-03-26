@@ -9,30 +9,34 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [1.8.27](#1827): refresh success checkmark feedback.
-2. [1.8.26](#1826): spinner state on confirmed panel refresh button.
-3. [1.8.25](#1825): refresh timestamp and right side slot refresh integration.
-4. [1.8.24](#1824): auto hide confirmed panel and manual refresh button.
-5. [1.8.23](#1823): docs sync and maintainer documentation rule.
-6. [1.8.22](#1822): today dividers with auto collapse and 2 minute refresh.
-7. [1.8.21](#1821): auto refresh relative timing and today sorting priority.
-8. [1.8.20](#1820): brand colored today badge and starts in helper.
-9. [1.8.19](#1819): timezone aware today badge.
-10. [1.8.18](#1818): status badges, booked on line, copy details button.
-11. [1.8.17](#1817): confirmed panel sorting and portal action links.
-12. [1.8.16](#1816): confirmed bookings sidebar cards.
-13. [1.7.4](#174): earliest badge and docs sync.
-14. [1.7.3](#173): cards only days and admin columns.
-15. [1.7.1](#171): daily counters and log retention.
-16. [1.7.0](#170): full activity logging release.
-17. [1.6.1](#161): settings preview polish.
-18. [1.6.0](#160): preview and fade refinements.
-19. [1.5.0](#150): skeleton load and editable modal copy.
-20. [1.4.0](#140): frontend cards and time picker redesign.
-21. [1.3.0](#130): six session workflow expansion.
-22. [1.2.0](#120): entries page and iCal.
-23. [1.1.0](#110): calendar and webhook baseline.
-24. [1.0.0](#100): initial release.
+1. [1.8.28](#1828): refreshed timestamp success highlight.
+2. [1.8.27](#1827): refresh success checkmark feedback.
+3. [1.8.26](#1826): spinner state on confirmed panel refresh button.
+4. [1.8.25](#1825): refresh timestamp and right side slot refresh integration.
+5. [1.8.24](#1824): auto hide confirmed panel and manual refresh button.
+6. [1.8.23](#1823): docs sync and maintainer documentation rule.
+7. [1.8.22](#1822): today dividers with auto collapse and 2 minute refresh.
+8. [1.8.21](#1821): auto refresh relative timing and today sorting priority.
+9. [1.8.20](#1820): brand colored today badge and starts in helper.
+10. [1.8.19](#1819): timezone aware today badge.
+11. [1.8.18](#1818): status badges, booked on line, copy details button.
+12. [1.8.17](#1817): confirmed panel sorting and portal action links.
+13. [1.8.16](#1816): confirmed bookings sidebar cards.
+14. [1.7.4](#174): earliest badge and docs sync.
+15. [1.7.3](#173): cards only days and admin columns.
+16. [1.7.1](#171): daily counters and log retention.
+17. [1.7.0](#170): full activity logging release.
+18. [1.6.1](#161): settings preview polish.
+19. [1.6.0](#160): preview and fade refinements.
+20. [1.5.0](#150): skeleton load and editable modal copy.
+21. [1.4.0](#140): frontend cards and time picker redesign.
+22. [1.3.0](#130): six session workflow expansion.
+23. [1.2.0](#120): entries page and iCal.
+24. [1.1.0](#110): calendar and webhook baseline.
+25. [1.0.0](#100): initial release.
+
+## 1.8.28
+1. Added success highlight on `Last refreshed` text after manual refresh completes.
 
 ## 1.8.27
 1. Added refresh success state with tiny checkmark text `Refreshed ✓`.

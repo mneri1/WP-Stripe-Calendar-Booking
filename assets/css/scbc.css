@@ -316,6 +316,11 @@
     margin: 4px 0 10px;
     color: #64748b;
     font-size: 11px;
+    transition: color .25s ease;
+}
+
+.scbc-confirmed-refreshed.is-success {
+    color: #166534;
 }
 
 .scbc-confirmed-email {
