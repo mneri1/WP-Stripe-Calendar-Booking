@@ -538,6 +538,17 @@
     color: #1e293b;
 }
 
+.scbc-modal-email-wrap {
+    margin: 8px 0 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.scbc-modal-email-wrap label {
+    margin: 0;
+    line-height: 1.2;
+}
+
 .scbc-modal-policy {
     border-top: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;

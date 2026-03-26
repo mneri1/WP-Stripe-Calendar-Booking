@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.11
+ * Version: 1.8.12
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1360,11 +1360,6 @@ class Stripe_Calendar_Booking_Cards
         echo '<div class="scbc-program-banner">';
         echo '<strong>6 Week Mentorship Program</strong> with ' . esc_html((string) self::PROGRAM_SESSIONS) . ' total sessions.';
         echo '</div>';
-        echo '<div class="scbc-email-wrap">';
-        echo '<label for="scbc-customer-email"><strong>Client Email</strong></label>';
-        echo '<input type="email" id="scbc-customer-email" class="scbc-email-input" placeholder="Required: you@example.com" required>';
-        echo '</div>';
-
         echo '<div class="scbc-list-toolbar">';
         echo '<label for="scbc-month-filter"><strong>Filter by Month</strong></label>';
         echo '<select id="scbc-month-filter" class="scbc-month-filter">';
@@ -1394,6 +1389,10 @@ class Stripe_Calendar_Booking_Cards
         echo '<button type="button" class="scbc-modal-close" id="scbc-modal-close" aria-label="Close">x</button>';
         echo '<h3 id="scbc-modal-title">Booking Details</h3>';
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
+        echo '<div class="scbc-modal-email-wrap">';
+        echo '<label for="scbc-modal-customer-email"><strong>Client Email</strong></label>';
+        echo '<input type="email" id="scbc-modal-customer-email" class="scbc-email-input" placeholder="Required: you@example.com" autocomplete="email" required>';
+        echo '</div>';
         echo '<div class="scbc-modal-policy">';
         echo '<p><strong>Session Expectations</strong>' . $this->render_help_tip('This tells what to do before session.', 'Like this: Bring 3 questions.') . '</p>';
         echo '<p>' . nl2br(esc_html($session_expectations_copy)) . '</p>';

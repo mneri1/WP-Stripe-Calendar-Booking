@@ -23,7 +23,7 @@
         var loadMoreBtn = document.getElementById('scbc-load-more');
         var paginationWrap = document.getElementById('scbc-pagination');
         var monthFilter = document.getElementById('scbc-month-filter');
-        var emailInput = document.getElementById('scbc-customer-email');
+        var modalEmailInput = document.getElementById('scbc-modal-customer-email');
         var modal = document.getElementById('scbc-slot-modal');
         var modalClose = document.getElementById('scbc-modal-close');
         var modalDetails = document.getElementById('scbc-modal-details');
@@ -252,15 +252,20 @@
         }
 
         function startCheckout(slotId, actionButton) {
-            var customerEmail = emailInput ? emailInput.value.trim() : '';
+            var customerEmail = modalEmailInput ? modalEmailInput.value.trim() : '';
             if (!slotId) {
                 return;
             }
             if (!customerEmail) {
                 showModalError('Please type your email first.');
-                if (emailInput) {
-                    emailInput.focus();
+                if (modalEmailInput) {
+                    modalEmailInput.focus();
                 }
+                return;
+            }
+            if (modalEmailInput && !modalEmailInput.checkValidity()) {
+                showModalError('Please enter a valid email address.');
+                modalEmailInput.focus();
                 return;
             }
 
