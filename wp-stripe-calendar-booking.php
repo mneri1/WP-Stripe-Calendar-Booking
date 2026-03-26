@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.23
+ * Version: 1.8.24
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.23');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.24');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.23', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.24', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.23');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.24');
     }
 
     public function render_shortcode()
@@ -1407,22 +1407,28 @@ class Stripe_Calendar_Booking_Cards
             });
         }
 
-        echo '<div class="scbc-front-grid" style="--scbc-brand:' . esc_attr($brand_color) . ';">';
-        echo '<aside class="scbc-confirmed-panel">';
-        echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
-        if (!empty($confirmed_email)) {
-            echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
-        }
-        if (!empty($confirmed_email)) {
-            $confirmed_used = count($confirmed_entries);
-            $confirmed_left = max(0, self::PROGRAM_SESSIONS - $confirmed_used);
-            echo '<div class="scbc-confirmed-metrics">';
-            echo '<div class="scbc-confirmed-metric"><span>Sessions Used</span><strong>' . esc_html((string) $confirmed_used . '/' . (string) self::PROGRAM_SESSIONS) . '</strong></div>';
-            echo '<div class="scbc-confirmed-metric"><span>Sessions Left</span><strong>' . esc_html((string) $confirmed_left) . '</strong></div>';
+        $show_confirmed_panel = !empty($confirmed_email) || !empty($confirmed_entries);
+        $front_grid_class = $show_confirmed_panel ? 'scbc-front-grid' : 'scbc-front-grid no-confirmed';
+        echo '<div class="' . esc_attr($front_grid_class) . '" style="--scbc-brand:' . esc_attr($brand_color) . ';">';
+        if ($show_confirmed_panel) {
+            echo '<aside class="scbc-confirmed-panel">';
+            echo '<div class="scbc-confirmed-head">';
+            echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
+            echo '<button type="button" id="scbc-confirmed-refresh" class="scbc-confirmed-refresh">Refresh Now</button>';
             echo '</div>';
-        }
-        if (!empty($confirmed_entries)) {
-            echo '<div class="scbc-confirmed-list">';
+            if (!empty($confirmed_email)) {
+                echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
+            }
+            if (!empty($confirmed_email)) {
+                $confirmed_used = count($confirmed_entries);
+                $confirmed_left = max(0, self::PROGRAM_SESSIONS - $confirmed_used);
+                echo '<div class="scbc-confirmed-metrics">';
+                echo '<div class="scbc-confirmed-metric"><span>Sessions Used</span><strong>' . esc_html((string) $confirmed_used . '/' . (string) self::PROGRAM_SESSIONS) . '</strong></div>';
+                echo '<div class="scbc-confirmed-metric"><span>Sessions Left</span><strong>' . esc_html((string) $confirmed_left) . '</strong></div>';
+                echo '</div>';
+            }
+            if (!empty($confirmed_entries)) {
+                echo '<div class="scbc-confirmed-list">';
             $today_upcoming_count = 0;
             $today_completed_count = 0;
             foreach ($confirmed_entries as $entry_count) {
@@ -1442,9 +1448,9 @@ class Stripe_Calendar_Booking_Cards
                     $today_completed_count++;
                 }
             }
-            echo '<h4 id="scbc-divider-upcoming" class="scbc-confirmed-divider scbc-confirmed-divider-upcoming"' . ($today_upcoming_count < 1 ? ' hidden' : '') . '>Today Upcoming (' . esc_html((string) $today_upcoming_count) . ')</h4>';
-            echo '<h4 id="scbc-divider-completed" class="scbc-confirmed-divider scbc-confirmed-divider-completed"' . ($today_completed_count < 1 ? ' hidden' : '') . '>Today Completed (' . esc_html((string) $today_completed_count) . ')</h4>';
-            foreach ($confirmed_entries as $entry) {
+                echo '<h4 id="scbc-divider-upcoming" class="scbc-confirmed-divider scbc-confirmed-divider-upcoming"' . ($today_upcoming_count < 1 ? ' hidden' : '') . '>Today Upcoming (' . esc_html((string) $today_upcoming_count) . ')</h4>';
+                echo '<h4 id="scbc-divider-completed" class="scbc-confirmed-divider scbc-confirmed-divider-completed"' . ($today_completed_count < 1 ? ' hidden' : '') . '>Today Completed (' . esc_html((string) $today_completed_count) . ')</h4>';
+                foreach ($confirmed_entries as $entry) {
                 $slot_id = isset($entry['slot_id']) ? (int) $entry['slot_id'] : 0;
                 $timezone = $this->sanitize_timezone(isset($entry['slot_timezone']) ? (string) $entry['slot_timezone'] : 'UTC');
                 $slot_start = isset($entry['slot_start']) ? (string) $entry['slot_start'] : '';
@@ -1532,13 +1538,14 @@ class Stripe_Calendar_Booking_Cards
                 echo '<a class="scbc-confirmed-portal" href="' . esc_url($portal_url) . '">Open Client Portal</a>';
                 echo '<a class="scbc-confirmed-ics" href="' . esc_url($ics_url) . '">Download iCal</a>';
                 echo '</div>';
-                echo '</article>';
+                    echo '</article>';
+                }
+                echo '</div>';
+            } else {
+                echo '<p class="scbc-confirmed-empty">No confirmed bookings yet. Once a session is paid, it will appear here.</p>';
             }
-            echo '</div>';
-        } else {
-            echo '<p class="scbc-confirmed-empty">No confirmed bookings yet. Once a session is paid, it will appear here.</p>';
+            echo '</aside>';
         }
-        echo '</aside>';
 
         echo '<div class="scbc-main-column">';
         echo '<div class="scbc-list-toolbar">';

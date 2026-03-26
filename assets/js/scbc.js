@@ -576,5 +576,17 @@
 
         refreshConfirmedTodayState();
         window.setInterval(refreshConfirmedTodayState, 120000);
+
+        var confirmedRefreshBtn = document.getElementById('scbc-confirmed-refresh');
+        if (confirmedRefreshBtn) {
+            confirmedRefreshBtn.addEventListener('click', function () {
+                refreshConfirmedRelativeTimes();
+                refreshConfirmedTodayState();
+                confirmedRefreshBtn.textContent = 'Refreshed';
+                window.setTimeout(function () {
+                    confirmedRefreshBtn.textContent = 'Refresh Now';
+                }, 1200);
+            });
+        }
     });
 })();

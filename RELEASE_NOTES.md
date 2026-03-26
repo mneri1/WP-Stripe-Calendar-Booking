@@ -9,25 +9,36 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [1.8.22](#1822): today dividers with auto collapse and 2 minute refresh.
-2. [1.8.21](#1821): auto refresh relative timing and today sorting priority.
-3. [1.8.20](#1820): brand colored today badge and starts in helper.
-4. [1.8.19](#1819): timezone aware today badge.
-5. [1.8.18](#1818): status badges, booked on line, copy details button.
-6. [1.8.17](#1817): confirmed panel sorting and portal action links.
-7. [1.8.16](#1816): confirmed bookings sidebar cards.
-8. [1.7.4](#174): earliest badge and docs sync.
-9. [1.7.3](#173): cards only days and admin columns.
-10. [1.7.1](#171): daily counters and log retention.
-11. [1.7.0](#170): full activity logging release.
-12. [1.6.1](#161): settings preview polish.
-13. [1.6.0](#160): preview and fade refinements.
-14. [1.5.0](#150): skeleton load and editable modal copy.
-15. [1.4.0](#140): frontend cards and time picker redesign.
-16. [1.3.0](#130): six session workflow expansion.
-17. [1.2.0](#120): entries page and iCal.
-18. [1.1.0](#110): calendar and webhook baseline.
-19. [1.0.0](#100): initial release.
+1. [1.8.24](#1824): auto hide confirmed panel and manual refresh button.
+2. [1.8.23](#1823): docs sync and maintainer documentation rule.
+3. [1.8.22](#1822): today dividers with auto collapse and 2 minute refresh.
+4. [1.8.21](#1821): auto refresh relative timing and today sorting priority.
+5. [1.8.20](#1820): brand colored today badge and starts in helper.
+6. [1.8.19](#1819): timezone aware today badge.
+7. [1.8.18](#1818): status badges, booked on line, copy details button.
+8. [1.8.17](#1817): confirmed panel sorting and portal action links.
+9. [1.8.16](#1816): confirmed bookings sidebar cards.
+10. [1.7.4](#174): earliest badge and docs sync.
+11. [1.7.3](#173): cards only days and admin columns.
+12. [1.7.1](#171): daily counters and log retention.
+13. [1.7.0](#170): full activity logging release.
+14. [1.6.1](#161): settings preview polish.
+15. [1.6.0](#160): preview and fade refinements.
+16. [1.5.0](#150): skeleton load and editable modal copy.
+17. [1.4.0](#140): frontend cards and time picker redesign.
+18. [1.3.0](#130): six session workflow expansion.
+19. [1.2.0](#120): entries page and iCal.
+20. [1.1.0](#110): calendar and webhook baseline.
+21. [1.0.0](#100): initial release.
+
+## 1.8.24
+1. Added auto hide of entire confirmed bookings panel when there is no customer context and no confirmed bookings.
+2. Added `Refresh Now` button in confirmed panel for instant manual refresh.
+3. Kept live state refresh behavior for today badges and status updates.
+
+## 1.8.23
+1. Updated documentation with confirmed panel workflow details.
+2. Added maintainer rule in `AGENTS.md` requiring docs update for every added feature.
 
 ## 1.8.22
 1. Added `Today Upcoming` and `Today Completed` divider titles in confirmed bookings.

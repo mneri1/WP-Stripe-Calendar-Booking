@@ -254,10 +254,33 @@
     padding: 12px;
 }
 
+.scbc-confirmed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
 .scbc-confirmed-title {
     margin: 0 0 4px;
     color: #0f172a;
     font-size: 18px;
+}
+
+.scbc-confirmed-refresh {
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scbc-confirmed-refresh:hover {
+    background: #f8fafc;
 }
 
 .scbc-confirmed-email {
@@ -1102,6 +1125,10 @@ body.scbc-modal-open {
         grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
         gap: 14px;
         align-items: start;
+    }
+
+    .scbc-front-grid.no-confirmed {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .scbc-confirmed-panel {
