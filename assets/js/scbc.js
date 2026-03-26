@@ -252,21 +252,38 @@
         }
 
         function getActiveModalEmailInput(actionButton) {
+            var visibleModalInput = document.querySelector('.scbc-modal[aria-hidden="false"] #scbc-modal-customer-email');
+            if (visibleModalInput) {
+                return visibleModalInput;
+            }
+
             if (actionButton) {
-                var dialog = actionButton.closest('.scbc-modal-dialog');
-                if (dialog) {
-                    var scoped = dialog.querySelector('#scbc-modal-customer-email');
+                var modalRoot = actionButton.closest('.scbc-modal');
+                if (modalRoot) {
+                    var scoped = modalRoot.querySelector('#scbc-modal-customer-email');
                     if (scoped) {
                         return scoped;
                     }
                 }
             }
+
             if (modal && modal.getAttribute('aria-hidden') === 'false') {
                 var openModalInput = modal.querySelector('#scbc-modal-customer-email');
                 if (openModalInput) {
                     return openModalInput;
                 }
             }
+
+            var anyFilledInput = Array.prototype.find.call(
+                document.querySelectorAll('#scbc-modal-customer-email'),
+                function (node) {
+                    return node && String(node.value || '').trim() !== '';
+                }
+            );
+            if (anyFilledInput) {
+                return anyFilledInput;
+            }
+
             return modalEmailInput;
         }
 
