@@ -55,13 +55,29 @@ First click: `Pages > Add New`.
 ## First Test
 First click: open your booking page in browser.
 1. Open booking page.
-2. Type test email.
-3. Click a slot.
-4. Click Continue to Payment.
+2. Click a slot.
+3. Type test email inside modal.
+4. Click BOOK NOW.
 5. Finish Stripe test payment.
 6. Return to your site.
 7. Confirm success notice.
 8. Confirm iCal download works.
+
+## Confirmed Bookings Panel
+First click: open your booking page after a successful paid booking.
+1. Look at the left side panel named `Confirmed Bookings`.
+2. Confirm your booked card appears with status badge.
+3. Confirm `Today` cards are pinned first.
+4. Confirm section titles show:
+5. `Today Upcoming (count)`
+6. `Today Completed (count)`
+7. Confirm sections auto collapse when count is zero.
+8. Confirm `Starts in X` text updates every 2 minutes.
+9. Confirm each card has:
+10. `Booked On` line
+11. `Copy Meeting Details` button
+12. `Open Client Portal` button
+13. `Download iCal` link
 
 ## Where To Check In Admin
 First click: `Booking Slots` in the left menu.

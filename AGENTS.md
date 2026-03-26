@@ -5,6 +5,12 @@ This file is the full handoff for the WordPress plugin `wp-stripe-calendar-booki
 
 Primary objective was to build a production ready Stripe booking plugin for Vibe Connection Lounge with a simple admin flow and a simple client flow.
 
+## Maintainer Rule
+1. Every newly added feature must be documented in project docs before finishing a change.
+2. Minimum required doc updates per feature:
+   1. `HOW_TO_USE.md` for user facing behavior.
+   2. `RELEASE_NOTES.md` for version change log.
+
 Site context used:
 1. `https://vibeconnectionlounge.com/`
 2. Booking page used for frontend tuning: `https://vibeconnectionlounge.com/book-your-1-on-1-mentorship-session/`

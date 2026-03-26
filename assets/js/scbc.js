@@ -525,6 +525,8 @@
                 return;
             }
             var nowTs = Math.floor(Date.now() / 1000);
+            var todayUpcomingCount = 0;
+            var todayCompletedCount = 0;
             cards.forEach(function (card) {
                 var ts = parseInt(card.getAttribute('data-start-ts') || '0', 10);
                 var tz = card.getAttribute('data-timezone') || 'UTC';
@@ -538,6 +540,8 @@
 
                 card.classList.toggle('is-upcoming', isUpcoming);
                 card.classList.toggle('is-completed', !isUpcoming);
+                card.setAttribute('data-is-today', isToday ? '1' : '0');
+                card.setAttribute('data-is-upcoming', isUpcoming ? '1' : '0');
 
                 var statusBadge = card.querySelector('.scbc-confirmed-status');
                 if (statusBadge) {
@@ -548,7 +552,26 @@
                 if (todayBadge) {
                     todayBadge.hidden = !isToday;
                 }
+
+                if (isToday) {
+                    if (isUpcoming) {
+                        todayUpcomingCount += 1;
+                    } else {
+                        todayCompletedCount += 1;
+                    }
+                }
             });
+
+            var dividerUpcoming = document.getElementById('scbc-divider-upcoming');
+            if (dividerUpcoming) {
+                dividerUpcoming.textContent = 'Today Upcoming (' + String(todayUpcomingCount) + ')';
+                dividerUpcoming.hidden = todayUpcomingCount < 1;
+            }
+            var dividerCompleted = document.getElementById('scbc-divider-completed');
+            if (dividerCompleted) {
+                dividerCompleted.textContent = 'Today Completed (' + String(todayCompletedCount) + ')';
+                dividerCompleted.hidden = todayCompletedCount < 1;
+            }
         }
 
         refreshConfirmedTodayState();

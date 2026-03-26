@@ -9,18 +9,58 @@
 6. [readme.txt](readme.txt)
 
 ## Table Of Contents
-1. [1.7.4](#174): earliest badge and docs sync.
-2. [1.7.3](#173): cards only days and admin columns.
-3. [1.7.1](#171): daily counters and log retention.
-4. [1.7.0](#170): full activity logging release.
-5. [1.6.1](#161): settings preview polish.
-6. [1.6.0](#160): preview and fade refinements.
-7. [1.5.0](#150): skeleton load and editable modal copy.
-8. [1.4.0](#140): frontend cards and time picker redesign.
-9. [1.3.0](#130): six session workflow expansion.
-10. [1.2.0](#120): entries page and iCal.
-11. [1.1.0](#110): calendar and webhook baseline.
-12. [1.0.0](#100): initial release.
+1. [1.8.22](#1822): today dividers with auto collapse and 2 minute refresh.
+2. [1.8.21](#1821): auto refresh relative timing and today sorting priority.
+3. [1.8.20](#1820): brand colored today badge and starts in helper.
+4. [1.8.19](#1819): timezone aware today badge.
+5. [1.8.18](#1818): status badges, booked on line, copy details button.
+6. [1.8.17](#1817): confirmed panel sorting and portal action links.
+7. [1.8.16](#1816): confirmed bookings sidebar cards.
+8. [1.7.4](#174): earliest badge and docs sync.
+9. [1.7.3](#173): cards only days and admin columns.
+10. [1.7.1](#171): daily counters and log retention.
+11. [1.7.0](#170): full activity logging release.
+12. [1.6.1](#161): settings preview polish.
+13. [1.6.0](#160): preview and fade refinements.
+14. [1.5.0](#150): skeleton load and editable modal copy.
+15. [1.4.0](#140): frontend cards and time picker redesign.
+16. [1.3.0](#130): six session workflow expansion.
+17. [1.2.0](#120): entries page and iCal.
+18. [1.1.0](#110): calendar and webhook baseline.
+19. [1.0.0](#100): initial release.
+
+## 1.8.22
+1. Added `Today Upcoming` and `Today Completed` divider titles in confirmed bookings.
+2. Added live section counts for both today groups.
+3. Added auto collapse for empty today groups.
+4. Added 2 minute auto refresh for today badge visibility and status text.
+
+## 1.8.21
+1. Added auto refresh for relative `Starts in X` text every minute.
+2. Prioritized today cards and placed today completed below today upcoming.
+
+## 1.8.20
+1. Updated today badge to use plugin brand color.
+2. Added today helper text with start countdown and started ago states.
+3. Pinned today sessions first in confirmed booking sorting.
+
+## 1.8.19
+1. Added timezone aware `Today` badge on confirmed cards.
+
+## 1.8.18
+1. Added upcoming and completed visual states on confirmed cards.
+2. Added `Booked On` line for each confirmed card.
+3. Added `Copy Meeting Details` button with clipboard support.
+
+## 1.8.17
+1. Sorted confirmed cards by upcoming schedule order.
+2. Added sessions used and sessions left summary cards.
+3. Added `Open Client Portal` button in each confirmed card.
+
+## 1.8.16
+1. Added left column `Confirmed Bookings` panel on booking page.
+2. Added confirmed booking cards with date time timezone amount and iCal link.
+3. Added responsive two column layout on desktop and stacked mobile layout.
 
 ## 1.7.4
 1. Added earliest time badge in each day card header.
