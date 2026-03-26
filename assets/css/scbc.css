@@ -564,6 +564,17 @@
     background: #0369a1;
 }
 
+.scbc-inline-error {
+    margin-top: 8px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 .scbc-mode-badge {
     display: inline-block;
     border-radius: 999px;

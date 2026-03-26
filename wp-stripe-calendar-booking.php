@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.7
+ * Version: 1.8.8
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -45,6 +45,8 @@ class Stripe_Calendar_Booking_Cards
         add_action('wp_ajax_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
         add_action('wp_ajax_nopriv_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
         add_action('wp_ajax_scbc_test_stripe_connection', array($this, 'ajax_test_stripe_connection'));
+        add_action('wp_ajax_scbc_log_retry_click', array($this, 'ajax_log_retry_click'));
+        add_action('wp_ajax_nopriv_scbc_log_retry_click', array($this, 'ajax_log_retry_click'));
         add_action('template_redirect', array($this, 'handle_checkout_return'));
         add_action('template_redirect', array($this, 'handle_ics_download'));
         add_action('init', array($this, 'ensure_reminder_cron'));
@@ -476,6 +478,9 @@ class Stripe_Calendar_Booking_Cards
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Reconciled Last 24h</strong><br>' . esc_html((string) $reconciled_today) . '</div>';
         echo '</div>';
         echo '<p><strong>Stripe Mode:</strong> <span class="scbc-mode-badge ' . esc_attr($mode_class) . '">' . esc_html($pk_mode) . '</span></p>';
+        if ($pk_mode === 'UNKNOWN') {
+            echo '<div class="notice notice-error inline"><p><strong>Stripe key mode looks wrong.</strong> Use keys that start with <code>pk_test_</code> and <code>sk_test_</code> or <code>pk_live_</code> and <code>sk_live_</code>.</p></div>';
+        }
         echo '<p><strong>Reconciliation Status:</strong> Checks every 15 minutes. Next check: <code>' . esc_html($next_reconcile_text) . '</code></p>';
         echo '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px;">';
         echo '<button type="button" id="scbc-test-stripe-btn" class="button button-secondary">Test Stripe Connection</button>';
@@ -1185,9 +1190,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.7');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.8');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.7', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.8', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1204,7 +1209,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.7');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.8');
     }
 
     public function render_shortcode()
@@ -1334,6 +1339,7 @@ class Stripe_Calendar_Booking_Cards
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
         echo '<button type="button" id="scbc-modal-retry-btn" class="scbc-book-btn scbc-retry-btn" data-slot-id="" hidden>Retry Payment</button>';
+        echo '<div id="scbc-modal-error" class="scbc-inline-error" hidden></div>';
         echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click Continue to Payment again.</p>';
         echo '</div>';
         echo '</div>';
@@ -1935,6 +1941,17 @@ class Stripe_Calendar_Booking_Cards
             'user_ip' => $this->get_request_ip(),
         ));
         wp_send_json_success(array('message' => $msg));
+    }
+
+    public function ajax_log_retry_click()
+    {
+        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+        $slot_id = isset($_POST['slot_id']) ? absint(wp_unslash($_POST['slot_id'])) : 0;
+        $this->log_event('checkout_retry_clicked', 'Client clicked retry payment in modal.', array(
+            'slot_id' => $slot_id,
+            'user_ip' => $this->get_request_ip(),
+        ));
+        wp_send_json_success(array('ok' => 1));
     }
 
     public function handle_checkout_return()

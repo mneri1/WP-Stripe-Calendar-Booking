@@ -29,7 +29,42 @@
         var modalDetails = document.getElementById('scbc-modal-details');
         var modalBookBtn = document.getElementById('scbc-modal-book-btn');
         var modalRetryBtn = document.getElementById('scbc-modal-retry-btn');
+        var modalErrorBox = document.getElementById('scbc-modal-error');
         var activeSlotId = '';
+
+        function showModalError(text) {
+            if (!modalErrorBox) {
+                alert(text);
+                return;
+            }
+            modalErrorBox.textContent = text || '';
+            modalErrorBox.hidden = false;
+        }
+
+        function clearModalError() {
+            if (!modalErrorBox) {
+                return;
+            }
+            modalErrorBox.textContent = '';
+            modalErrorBox.hidden = true;
+        }
+
+        function logRetryClick(slotId) {
+            if (!slotId || typeof SCBC_DATA === 'undefined' || !SCBC_DATA.nonce) {
+                return;
+            }
+            var form = new FormData();
+            form.append('action', 'scbc_log_retry_click');
+            form.append('nonce', SCBC_DATA.nonce);
+            form.append('slot_id', slotId);
+            fetch(SCBC_DATA.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: form
+            }).catch(function () {
+                return null;
+            });
+        }
 
         function buildSkeletonMarkup(count) {
             var total = count || 4;
@@ -185,6 +220,7 @@
                 modalRetryBtn.hidden = true;
                 modalRetryBtn.disabled = false;
             }
+            clearModalError();
         }
 
         function openModal(button) {
@@ -202,6 +238,7 @@
                 modalRetryBtn.hidden = true;
                 modalRetryBtn.disabled = false;
             }
+            clearModalError();
             modalDetails.innerHTML =
                 '<p><strong>' + escapeHtml(button.getAttribute('data-slot-title') || '') + '</strong></p>' +
                 '<p><strong>Date:</strong> ' + escapeHtml(button.getAttribute('data-slot-date') || '') + '</p>' +
@@ -220,7 +257,7 @@
                 return;
             }
             if (!customerEmail) {
-                alert('Please enter your client email first.');
+                showModalError('Please type your email first.');
                 if (emailInput) {
                     emailInput.focus();
                 }
@@ -259,7 +296,7 @@
                 .catch(function (err) {
                     var base = (err && err.message) ? err.message : SCBC_DATA.messages.error;
                     var help = SCBC_DATA.messages.checkoutHelp || '';
-                    alert(help ? (base + '\n\n' + help) : base);
+                    showModalError(help ? (base + ' ' + help) : base);
                     actionButton.disabled = false;
                     actionButton.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
                     if (modalRetryBtn) {
@@ -289,6 +326,7 @@
         if (modalRetryBtn) {
             modalRetryBtn.addEventListener('click', function () {
                 var slotId = modalRetryBtn.getAttribute('data-slot-id') || activeSlotId;
+                logRetryClick(slotId);
                 startCheckout(slotId, modalRetryBtn);
             });
         }
