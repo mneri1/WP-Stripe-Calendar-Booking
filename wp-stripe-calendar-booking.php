@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.16
+ * Version: 1.8.17
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -1252,9 +1252,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.16');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.17');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.16', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.17', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1271,7 +1271,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.16');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.17');
     }
 
     public function render_shortcode()
@@ -1369,10 +1369,21 @@ class Stripe_Calendar_Booking_Cards
         }
         $confirmed_entries = !empty($confirmed_email) ? $this->get_booking_entries_by_email($confirmed_email, self::PROGRAM_SESSIONS) : array();
         if (!empty($confirmed_entries)) {
-            usort($confirmed_entries, static function ($a, $b) {
-                $a_time = isset($a['booked_at']) ? (string) $a['booked_at'] : '';
-                $b_time = isset($b['booked_at']) ? (string) $b['booked_at'] : '';
-                return strcmp($b_time, $a_time);
+            usort($confirmed_entries, function ($a, $b) {
+                $a_tz = $this->sanitize_timezone(isset($a['slot_timezone']) ? (string) $a['slot_timezone'] : 'UTC');
+                $b_tz = $this->sanitize_timezone(isset($b['slot_timezone']) ? (string) $b['slot_timezone'] : 'UTC');
+                $a_ts = $this->get_slot_timestamp(isset($a['slot_start']) ? (string) $a['slot_start'] : '', $a_tz);
+                $b_ts = $this->get_slot_timestamp(isset($b['slot_start']) ? (string) $b['slot_start'] : '', $b_tz);
+                if ($a_ts === $b_ts) {
+                    return 0;
+                }
+                if ($a_ts <= 0) {
+                    return 1;
+                }
+                if ($b_ts <= 0) {
+                    return -1;
+                }
+                return $a_ts < $b_ts ? -1 : 1;
             });
         }
 
@@ -1381,6 +1392,14 @@ class Stripe_Calendar_Booking_Cards
         echo '<h3 class="scbc-confirmed-title">Confirmed Bookings</h3>';
         if (!empty($confirmed_email)) {
             echo '<p class="scbc-confirmed-email">For ' . esc_html($confirmed_email) . '</p>';
+        }
+        if (!empty($confirmed_email)) {
+            $confirmed_used = count($confirmed_entries);
+            $confirmed_left = max(0, self::PROGRAM_SESSIONS - $confirmed_used);
+            echo '<div class="scbc-confirmed-metrics">';
+            echo '<div class="scbc-confirmed-metric"><span>Sessions Used</span><strong>' . esc_html((string) $confirmed_used . '/' . (string) self::PROGRAM_SESSIONS) . '</strong></div>';
+            echo '<div class="scbc-confirmed-metric"><span>Sessions Left</span><strong>' . esc_html((string) $confirmed_left) . '</strong></div>';
+            echo '</div>';
         }
         if (!empty($confirmed_entries)) {
             echo '<div class="scbc-confirmed-list">';
@@ -1404,13 +1423,20 @@ class Stripe_Calendar_Booking_Cards
                     ),
                     home_url('/')
                 );
+                $portal_ref = !empty($confirmed_email) ? $this->create_customer_ref_token($confirmed_email, $slot_id, isset($entry['session_id']) ? (string) $entry['session_id'] : '') : '';
+                $portal_url = !empty($portal_ref)
+                    ? add_query_arg('customer_ref', rawurlencode($portal_ref), home_url('/'))
+                    : add_query_arg('scbc_email', rawurlencode($confirmed_email), home_url('/'));
                 echo '<article class="scbc-confirmed-card">';
                 echo '<p class="scbc-confirmed-badge">Confirmed</p>';
                 echo '<h4>' . esc_html((string) $title) . '</h4>';
                 echo '<p>' . esc_html((string) $date_line) . '</p>';
                 echo '<p>' . esc_html((string) $time_line) . '</p>';
                 echo '<p><strong>' . esc_html((string) $amount_line) . '</strong></p>';
+                echo '<div class="scbc-confirmed-actions">';
+                echo '<a class="scbc-confirmed-portal" href="' . esc_url($portal_url) . '">Open Client Portal</a>';
                 echo '<a class="scbc-confirmed-ics" href="' . esc_url($ics_url) . '">Download iCal</a>';
+                echo '</div>';
                 echo '</article>';
             }
             echo '</div>';
