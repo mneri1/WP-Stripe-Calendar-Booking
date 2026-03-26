@@ -4,7 +4,7 @@ Tags: booking, stripe, calendar, mentorship, appointments
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.8.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,11 @@ Yes. It has an Activity Logs page with filters, search, and daily counters.
 - Added secure customer ref token in success redirect params
 - Added settings card for reconciled bookings in last 24 hours
 - Split token and reconciliation logic into separate include traits
+
+= 1.8.5 =
+- Simplified help tips and examples for non technical users
+- Added onboarding links and dashboard quick start widget
+- Added expandable info tips in slot editor and modal policy
 
 = 1.7.4 =
 - Added earliest time badge in day card header

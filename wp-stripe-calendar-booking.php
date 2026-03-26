@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.4
+ * Version: 1.8.5
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -99,9 +99,9 @@ class Stripe_Calendar_Booking_Cards
         $booked_count = $this->get_slot_booked_count($post->ID);
         $spots_left = max(0, $capacity - $booked_count);
 
-        echo '<p><label for="scbc_start_date"><strong>Start Date</strong></label>' . $this->render_help_tip('Pick the day of this session.', 'Example: 2026 04 20 means April 20.') . '<br>';
+        echo '<p><label for="scbc_start_date"><strong>Start Date</strong></label>' . $this->render_help_tip('Pick the day for this meeting.', 'Like this: 2026 04 20') . '<br>';
         echo '<input type="date" id="scbc_start_date" name="scbc_start_date" value="' . esc_attr($start_date) . '" style="width:100%;max-width:260px" required></p>';
-        echo '<p><label for="scbc_start_time"><strong>Start Time</strong></label>' . $this->render_help_tip('Pick the time when the session begins.', 'Example: 11:30 starts at 11:30.') . '<br>';
+        echo '<p><label for="scbc_start_time"><strong>Start Time</strong></label>' . $this->render_help_tip('Pick what time it starts.', 'Like this: 11:30') . '<br>';
         echo '<select id="scbc_start_time" name="scbc_start_time" size="8" style="width:100%;max-width:260px;overflow-y:auto;" required>';
         for ($h = 0; $h < 24; $h++) {
             foreach (array('00', '30') as $m) {
@@ -110,16 +110,16 @@ class Stripe_Calendar_Booking_Cards
             }
         }
         echo '</select><br><small>Scroll up or down to pick time slots.</small></p>';
-        echo '<p><label for="scbc_price"><strong>Price</strong></label>' . $this->render_help_tip('Type the price for one booking of this slot.', 'Example: 500 means five hundred dollars.') . '<br>';
+        echo '<p><label for="scbc_price"><strong>Price</strong></label>' . $this->render_help_tip('Type how much this meeting costs.', 'Like this: 500') . '<br>';
         echo '<input type="number" step="0.01" min="0" id="scbc_price" name="scbc_price" value="' . esc_attr($price) . '" style="width:100%;max-width:220px" required></p>';
         $timezone_options = function_exists('wp_timezone_choice')
             ? wp_timezone_choice($timezone)
             : '<option value="' . esc_attr($timezone) . '">' . esc_html($timezone) . '</option>';
-        echo '<p><label for="scbc_timezone"><strong>Timezone</strong></label>' . $this->render_help_tip('Choose where this session time belongs.', 'Example: America/New_York for New York time.') . '<br>';
+        echo '<p><label for="scbc_timezone"><strong>Timezone</strong></label>' . $this->render_help_tip('Pick the city time for this meeting.', 'Like this: America/New_York') . '<br>';
         echo '<select id="scbc_timezone" name="scbc_timezone" style="width:100%;max-width:420px;">' . $timezone_options . '</select></p>';
-        echo '<p><label for="scbc_capacity"><strong>Capacity</strong></label>' . $this->render_help_tip('How many people can book this same slot.', 'Example: 1 means only one person can book this time.') . '<br>';
+        echo '<p><label for="scbc_capacity"><strong>Capacity</strong></label>' . $this->render_help_tip('Pick how many people can book this time.', 'Like this: 1') . '<br>';
         echo '<input type="number" step="1" min="1" id="scbc_capacity" name="scbc_capacity" value="' . esc_attr((string) $capacity) . '" style="width:100%;max-width:220px" required></p>';
-        echo '<p><label for="scbc_duration_minutes"><strong>Duration Minutes</strong></label>' . $this->render_help_tip('How long the session lasts in minutes.', 'Example: 60 means one hour.') . '<br>';
+        echo '<p><label for="scbc_duration_minutes"><strong>Duration Minutes</strong></label>' . $this->render_help_tip('Pick how long this meeting is.', 'Like this: 60') . '<br>';
         echo '<input type="number" step="1" min="5" id="scbc_duration_minutes" name="scbc_duration_minutes" value="' . esc_attr((string) $duration_minutes) . '" style="width:100%;max-width:220px" required></p>';
         echo '<p><strong>Status:</strong> ' . ($spots_left > 0 ? 'Open' : 'Full') . '</p>';
         echo '<p><strong>Booked Count:</strong> ' . esc_html((string) $booked_count) . ' of ' . esc_html((string) $capacity) . '</p>';
@@ -367,9 +367,9 @@ class Stripe_Calendar_Booking_Cards
         $add_slot_url = admin_url('post-new.php?post_type=scbc_slot');
         $entries_url = admin_url('edit.php?post_type=scbc_slot&page=scbc-booking-entries');
         echo '<div style="display:grid;grid-template-columns:1fr;gap:8px;">';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Stripe keys in Settings.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create times people can book.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
-        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking to confirm.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Put your Stripe keys here.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Make times people can pick.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
+        echo '<div style="border:1px solid #dbe3ee;border-radius:10px;padding:10px 12px;background:#fff;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Do one test booking and make sure it works.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
         echo '</div>';
         echo '<p style="margin:10px 0 0;"><strong>Next reconciliation:</strong> <code>' . esc_html($next_reconcile_text) . '</code></p>';
         echo '<p><a class="button button-primary" href="' . esc_url(admin_url('options-general.php?page=scbc-settings')) . '">Open Stripe Booking Settings</a></p>';
@@ -461,9 +461,9 @@ class Stripe_Calendar_Booking_Cards
             echo '<script>(function(){var t=document.getElementById("scbc-settings-toast");var b=document.getElementById("scbc-settings-toast-close");if(b&&t){b.addEventListener("click",function(){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);});}setTimeout(function(){if(t){t.style.transition="opacity .24s ease";t.style.opacity="0";setTimeout(function(){if(t&&t.parentNode){t.parentNode.removeChild(t);}},260);}},3200);}());</script>';
         }
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0 14px;">';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Paste Publishable Key and Secret Key so payments can work.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Create booking slots with date time price and capacity.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
-        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Run one test booking and check entries logs and reconciliations.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-easy">Easy</span> <strong>Step 1 Add Keys</strong><br><span style="color:#475569;">Put your Stripe keys so payment can start.</span><br><a href="' . esc_url($settings_url) . '">Open settings</a></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-core">Core</span> <strong>Step 2 Add Slots</strong><br><span style="color:#475569;">Make date, time, price, and seats.</span><br><a href="' . esc_url($add_slot_url) . '">Add slot now</a></div>';
+        echo '<div style="background:#ffffff;border:1px solid #dbe3ee;padding:12px 14px;border-radius:10px;"><span class="scbc-step-tag is-important">Important</span> <strong>Step 3 Test Once</strong><br><span style="color:#475569;">Do one test booking then check entries and logs.</span><br><a href="' . esc_url($entries_url) . '">View booking entries</a></div>';
         echo '</div>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px;">';
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Active Clients</strong><br>' . esc_html((string) $stats['active_clients']) . '</div>';
@@ -1175,9 +1175,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.4');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.5');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.4', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.5', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1194,7 +1194,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.4');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.5');
     }
 
     public function render_shortcode()
@@ -1316,9 +1316,9 @@ class Stripe_Calendar_Booking_Cards
         echo '<h3 id="scbc-modal-title">Booking Details</h3>';
         echo '<div id="scbc-modal-details" class="scbc-modal-details"></div>';
         echo '<div class="scbc-modal-policy">';
-        echo '<p><strong>Session Expectations</strong>' . $this->render_help_tip('What this session is for.', 'Example: Bring your top 3 questions for coaching.') . '</p>';
+        echo '<p><strong>Session Expectations</strong>' . $this->render_help_tip('This tells what to do before session.', 'Like this: Bring 3 questions.') . '</p>';
         echo '<p>' . nl2br(esc_html($session_expectations_copy)) . '</p>';
-        echo '<p><strong>Cancellation Policy</strong>' . $this->render_help_tip('Rules when someone needs to cancel or move time.', 'Example: Cancel at least 24 hours before session time.') . '</p>';
+        echo '<p><strong>Cancellation Policy</strong>' . $this->render_help_tip('This tells cancel rules.', 'Like this: Cancel 24 hours early.') . '</p>';
         echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
