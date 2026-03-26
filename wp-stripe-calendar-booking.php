@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Stripe Calendar Booking Cards
  * Description: Admin defined booking schedules shown in a monthly calendar with Stripe checkout and booking notifications.
- * Version: 1.8.5
+ * Version: 1.8.6
  * Author: Mik Neri
  * Author URI: https://mikneri.dev
  * License: GPL2+
@@ -44,6 +44,7 @@ class Stripe_Calendar_Booking_Cards
         add_action('wp_ajax_nopriv_scbc_create_checkout_session', array($this, 'ajax_create_checkout_session'));
         add_action('wp_ajax_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
         add_action('wp_ajax_nopriv_scbc_fetch_slots', array($this, 'ajax_fetch_slots'));
+        add_action('wp_ajax_scbc_test_stripe_connection', array($this, 'ajax_test_stripe_connection'));
         add_action('template_redirect', array($this, 'handle_checkout_return'));
         add_action('template_redirect', array($this, 'handle_ics_download'));
         add_action('init', array($this, 'ensure_reminder_cron'));
@@ -473,6 +474,12 @@ class Stripe_Calendar_Booking_Cards
         echo '<div style="background:#f8fafc;border:1px solid #dbe3ee;padding:10px 14px;border-radius:8px;min-width:190px;"><strong>Reconciled Last 24h</strong><br>' . esc_html((string) $reconciled_today) . '</div>';
         echo '</div>';
         echo '<p><strong>Reconciliation Status:</strong> Checks every 15 minutes. Next check: <code>' . esc_html($next_reconcile_text) . '</code></p>';
+        echo '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px;">';
+        echo '<button type="button" id="scbc-test-stripe-btn" class="button button-secondary">Test Stripe Connection</button>';
+        echo '<span id="scbc-test-stripe-result" style="color:#334155;"></span>';
+        echo '</div>';
+        $test_nonce = wp_create_nonce('scbc_test_connection');
+        echo '<script>(function(){var b=document.getElementById("scbc-test-stripe-btn");var o=document.getElementById("scbc-test-stripe-result");if(!b||!o){return;}b.addEventListener("click",function(){b.disabled=true;o.style.color="#334155";o.textContent="Checking Stripe...";var body=new URLSearchParams();body.append("action","scbc_test_stripe_connection");body.append("nonce","' . esc_js($test_nonce) . '");fetch("' . esc_url(admin_url('admin-ajax.php')) . '",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:body.toString()}).then(function(r){return r.json();}).then(function(payload){if(payload&&payload.success&&payload.data&&payload.data.message){o.style.color="#166534";o.textContent=payload.data.message;return;}var m=(payload&&payload.data&&payload.data.message)?payload.data.message:"Could not connect to Stripe right now.";o.style.color="#991b1b";o.textContent=m;}).catch(function(){o.style.color="#991b1b";o.textContent="Could not connect to Stripe right now.";}).finally(function(){b.disabled=false;});});})();</script>';
         echo '<p>Use shortcode <code>[stripe_booking_calendar]</code> on any page to show booking schedules.</p>';
         echo '<p>Client portal shortcode: <code>[scbc_client_portal]</code></p>';
         echo '<form method="post" action="options.php">';
@@ -1175,9 +1182,9 @@ class Stripe_Calendar_Booking_Cards
 
     public function register_assets()
     {
-        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.5');
+        wp_register_style('scbc-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.6');
         wp_register_script('scbc-stripe-js', 'https://js.stripe.com/v3/', array(), null, true);
-        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.5', true);
+        wp_register_script('scbc-booking', plugin_dir_url(__FILE__) . 'assets/js/scbc.js', array('scbc-stripe-js'), '1.8.6', true);
     }
 
     public function enqueue_admin_assets($hook)
@@ -1194,7 +1201,7 @@ class Stripe_Calendar_Booking_Cards
         if (!in_array($hook, $allowed, true)) {
             return;
         }
-        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.5');
+        wp_enqueue_style('scbc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/scbc.css', array(), '1.8.6');
     }
 
     public function render_shortcode()
@@ -1226,6 +1233,7 @@ class Stripe_Calendar_Booking_Cards
             'requestedMonth' => $requested_month,
             'messages' => array(
                 'error' => 'Could not start checkout. Please try again.',
+                'checkoutHelp' => 'If Stripe says Something went wrong, go back and click Continue to Payment again. If it still fails, ask admin to click Test Stripe Connection in settings.',
                 'loading' => 'Starting checkout...',
                 'loadingSlots' => 'Loading schedules...',
                 'loadMore' => 'Load More Schedules',
@@ -1322,6 +1330,7 @@ class Stripe_Calendar_Booking_Cards
         echo '<p>' . nl2br(esc_html($cancellation_policy_copy)) . '</p>';
         echo '</div>';
         echo '<button type="button" id="scbc-modal-book-btn" class="scbc-book-btn" data-slot-id="">Continue to Payment</button>';
+        echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click Continue to Payment again.</p>';
         echo '</div>';
         echo '</div>';
         $this->render_help_tip_script();
@@ -1847,6 +1856,70 @@ class Stripe_Calendar_Booking_Cards
             'isEmpty' => empty($paged['slots']),
             'paginationHtml' => $this->render_pagination_controls($paged['page'], $paged['max_pages']),
         ));
+    }
+
+    public function ajax_test_stripe_connection()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'You are not allowed to run this check.'), 403);
+        }
+        check_ajax_referer('scbc_test_connection', 'nonce');
+
+        $settings = $this->get_settings();
+        $publishable_key = isset($settings['publishable_key']) ? (string) $settings['publishable_key'] : '';
+        $secret_key = isset($settings['secret_key']) ? (string) $settings['secret_key'] : '';
+        if ($publishable_key === '' || $secret_key === '') {
+            wp_send_json_error(array('message' => 'Please add Stripe keys first.'), 400);
+        }
+
+        $pk_mode = strpos($publishable_key, 'pk_live_') === 0 ? 'live' : (strpos($publishable_key, 'pk_test_') === 0 ? 'test' : 'unknown');
+        $sk_mode = strpos($secret_key, 'sk_live_') === 0 ? 'live' : (strpos($secret_key, 'sk_test_') === 0 ? 'test' : 'unknown');
+        if ($pk_mode === 'unknown' || $sk_mode === 'unknown') {
+            wp_send_json_error(array('message' => 'Stripe keys format looks wrong. Check key values and try again.'), 400);
+        }
+        if ($pk_mode !== $sk_mode) {
+            wp_send_json_error(array('message' => 'Stripe keys are mixed. Use both test keys or both live keys.'), 400);
+        }
+
+        $response = wp_remote_get('https://api.stripe.com/v1/account', array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $secret_key,
+            ),
+            'timeout' => 20,
+        ));
+        if (is_wp_error($response)) {
+            $this->log_event('stripe_connection_test_failed', 'Stripe connection test failed.', array(
+                'error' => $response->get_error_message(),
+                'user_id' => get_current_user_id(),
+                'user_ip' => $this->get_request_ip(),
+            ), 'error');
+            wp_send_json_error(array('message' => 'Could not reach Stripe. Check internet and try again.'), 500);
+        }
+
+        $code = wp_remote_retrieve_response_code($response);
+        $body = json_decode((string) wp_remote_retrieve_body($response), true);
+        if ($code >= 300) {
+            $error_message = isset($body['error']['message']) ? sanitize_text_field((string) $body['error']['message']) : 'Stripe returned an error.';
+            $this->log_event('stripe_connection_test_failed', 'Stripe connection test returned error response.', array(
+                'http_code' => $code,
+                'message' => $error_message,
+                'user_id' => get_current_user_id(),
+                'user_ip' => $this->get_request_ip(),
+            ), 'warning');
+            wp_send_json_error(array('message' => $error_message), 400);
+        }
+
+        $account_id = isset($body['id']) ? sanitize_text_field((string) $body['id']) : 'unknown';
+        $charges_enabled = !empty($body['charges_enabled']) ? 'yes' : 'no';
+        $msg = 'Connected. Mode: ' . strtoupper($pk_mode) . '. Account: ' . $account_id . '. Charges enabled: ' . $charges_enabled . '.';
+        $this->log_event('stripe_connection_test_ok', 'Stripe connection test passed.', array(
+            'mode' => $pk_mode,
+            'account_id' => $account_id,
+            'charges_enabled' => $charges_enabled,
+            'user_id' => get_current_user_id(),
+            'user_ip' => $this->get_request_ip(),
+        ));
+        wp_send_json_success(array('message' => $msg));
     }
 
     public function handle_checkout_return()

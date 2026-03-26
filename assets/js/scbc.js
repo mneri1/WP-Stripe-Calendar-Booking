@@ -246,7 +246,9 @@
                     }
                 })
                 .catch(function (err) {
-                    alert(err.message || SCBC_DATA.messages.error);
+                    var base = (err && err.message) ? err.message : SCBC_DATA.messages.error;
+                    var help = SCBC_DATA.messages.checkoutHelp || '';
+                    alert(help ? (base + '\n\n' + help) : base);
                     actionButton.disabled = false;
                     actionButton.textContent = SCBC_DATA.messages.modalButton || 'Continue to Payment';
                 });

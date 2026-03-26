@@ -552,6 +552,13 @@
     line-height: 1.4;
 }
 
+.scbc-checkout-note {
+    margin: 10px 0 0;
+    color: #475569;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 body.scbc-modal-open {
     overflow: hidden;
 }
