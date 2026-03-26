@@ -438,45 +438,21 @@
     color: #0f172a;
 }
 
-.scbc-confirmed-ics {
-    display: inline-block;
-    margin-top: 2px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
 .scbc-confirmed-actions {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
+    margin-top: 8px;
 }
 
-.scbc-confirmed-copy {
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #0f172a;
-    background: #ffffff;
-    cursor: pointer;
-}
-
-.scbc-confirmed-copy:hover {
-    background: #f1f5f9;
-}
-
-.scbc-confirmed-portal {
-    display: inline-block;
-    border: 1px solid #0ea5e9;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #0c4a6e;
-    background: #e0f2fe;
-    text-decoration: none;
+.scbc-confirmed-show {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 16px;
+    font-size: 16px;
+    line-height: 1.2;
+    text-align: center;
 }
 
 .scbc-list-toolbar {

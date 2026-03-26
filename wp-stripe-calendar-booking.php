@@ -1567,20 +1567,6 @@ class Stripe_Calendar_Booking_Cards
                     $booked_on = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), (string) $entry['booked_at']);
                 }
                 $amount_line = strtoupper((string) (isset($entry['currency']) ? $entry['currency'] : $options['currency'])) . ' ' . number_format_i18n(((float) (isset($entry['amount_total']) ? $entry['amount_total'] : 0)) / 100, 2);
-                $ics_url = add_query_arg(
-                    array(
-                        'scbc_download_ics' => '1',
-                        'slot_id' => $slot_id,
-                        'session_id' => isset($entry['session_id']) ? (string) $entry['session_id'] : '',
-                    ),
-                    home_url('/')
-                );
-                $entry_customer_email = isset($entry['customer_email']) ? sanitize_email((string) $entry['customer_email']) : '';
-                $portal_email = !empty($entry_customer_email) ? $entry_customer_email : $confirmed_email;
-                $portal_ref = !empty($portal_email) ? $this->create_customer_ref_token($portal_email, $slot_id, isset($entry['session_id']) ? (string) $entry['session_id'] : '') : '';
-                $portal_url = !empty($portal_ref)
-                    ? add_query_arg('customer_ref', rawurlencode($portal_ref), home_url('/'))
-                    : add_query_arg('scbc_email', rawurlencode($portal_email), home_url('/'));
                 $copy_payload = implode("\n", array(
                     'Booking: ' . (string) $title,
                     'Date: ' . (string) $date_line,
@@ -1607,9 +1593,7 @@ class Stripe_Calendar_Booking_Cards
                 }
                 echo '<p><strong>' . esc_html((string) $amount_line) . '</strong></p>';
                 echo '<div class="scbc-confirmed-actions">';
-                echo '<button type="button" class="scbc-confirmed-copy" data-copy="' . esc_attr($copy_payload) . '">Copy Meeting Details</button>';
-                echo '<a class="scbc-confirmed-portal" href="' . esc_url($portal_url) . '">Open Client Portal</a>';
-                echo '<a class="scbc-confirmed-ics" href="' . esc_url($ics_url) . '">Download iCal</a>';
+                echo '<button type="button" class="scbc-confirmed-show scbc-book-btn" data-title="' . esc_attr((string) $title) . '" data-date="' . esc_attr((string) $date_line) . '" data-time="' . esc_attr((string) $time_line) . '" data-status="' . esc_attr((string) $status_label) . '" data-booked="' . esc_attr((string) ($booked_on !== '' ? $booked_on : 'N/A')) . '" data-amount="' . esc_attr((string) $amount_line) . '" data-copy="' . esc_attr($copy_payload) . '">Show Details</button>';
                 echo '</div>';
                     echo '</article>';
                 }
@@ -1666,6 +1650,14 @@ class Stripe_Calendar_Booking_Cards
         echo '<button type="button" id="scbc-modal-retry-btn" class="scbc-book-btn scbc-retry-btn" data-slot-id="" hidden>Retry Payment</button>';
         echo '<div id="scbc-modal-error" class="scbc-inline-error" hidden></div>';
         echo '<p class="scbc-checkout-note">If payment page says something went wrong, go back and click BOOK NOW again.</p>';
+        echo '</div>';
+        echo '</div>';
+
+        echo '<div id="scbc-confirmed-modal" class="scbc-modal" aria-hidden="true">';
+        echo '<div class="scbc-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scbc-confirmed-modal-title">';
+        echo '<button type="button" class="scbc-modal-close" id="scbc-confirmed-modal-close" aria-label="Close">x</button>';
+        echo '<h3 id="scbc-confirmed-modal-title">Meeting Details</h3>';
+        echo '<div id="scbc-confirmed-modal-details" class="scbc-modal-details"></div>';
         echo '</div>';
         echo '</div>';
         $this->render_help_tip_script();

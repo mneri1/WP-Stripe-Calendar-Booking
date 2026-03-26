@@ -30,6 +30,9 @@
         var modalBookBtn = document.getElementById('scbc-modal-book-btn');
         var modalRetryBtn = document.getElementById('scbc-modal-retry-btn');
         var modalErrorBox = document.getElementById('scbc-modal-error');
+        var confirmedModal = document.getElementById('scbc-confirmed-modal');
+        var confirmedModalClose = document.getElementById('scbc-confirmed-modal-close');
+        var confirmedModalDetails = document.getElementById('scbc-confirmed-modal-details');
         var activeSlotId = '';
 
         function showModalError(text) {
@@ -385,9 +388,47 @@
             });
         }
 
+        function closeConfirmedModal() {
+            if (!confirmedModal) {
+                return;
+            }
+            confirmedModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('scbc-modal-open');
+            if (confirmedModalDetails) {
+                confirmedModalDetails.innerHTML = '';
+            }
+        }
+
+        function openConfirmedModal(button) {
+            if (!confirmedModal || !confirmedModalDetails || !button) {
+                return;
+            }
+            var title = button.getAttribute('data-title') || 'Booking';
+            var dateText = button.getAttribute('data-date') || '';
+            var timeText = button.getAttribute('data-time') || '';
+            var statusText = button.getAttribute('data-status') || '';
+            var bookedText = button.getAttribute('data-booked') || '';
+            var amountText = button.getAttribute('data-amount') || '';
+            confirmedModalDetails.innerHTML =
+                '<p><strong>' + escapeHtml(title) + '</strong></p>' +
+                '<p><strong>Status:</strong> ' + escapeHtml(statusText) + '</p>' +
+                '<p><strong>Date:</strong> ' + escapeHtml(dateText) + '</p>' +
+                '<p><strong>Time:</strong> ' + escapeHtml(timeText) + '</p>' +
+                '<p><strong>Booked On:</strong> ' + escapeHtml(bookedText) + '</p>' +
+                '<p><strong>Amount:</strong> ' + escapeHtml(amountText) + '</p>';
+            confirmedModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('scbc-modal-open');
+        }
+
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
+            if (event.key !== 'Escape') {
+                return;
+            }
+            if (modal && modal.getAttribute('aria-hidden') === 'false') {
                 closeModal();
+            }
+            if (confirmedModal && confirmedModal.getAttribute('aria-hidden') === 'false') {
+                closeConfirmedModal();
             }
         });
 
@@ -427,42 +468,23 @@
         }
 
         document.addEventListener('click', function (event) {
-            var copyBtn = event.target.closest('.scbc-confirmed-copy');
-            if (!copyBtn) {
+            var showBtn = event.target.closest('.scbc-confirmed-show');
+            if (!showBtn) {
                 return;
             }
-            var text = copyBtn.getAttribute('data-copy') || '';
-            if (!text) {
-                return;
-            }
-            var resetLabel = function () {
-                copyBtn.textContent = 'Copy Meeting Details';
-            };
-            var setCopiedLabel = function () {
-                copyBtn.textContent = 'Copied';
-                setTimeout(resetLabel, 1500);
-            };
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(setCopiedLabel).catch(function () {
-                    resetLabel();
-                });
-                return;
-            }
-            var temp = document.createElement('textarea');
-            temp.value = text;
-            temp.setAttribute('readonly', 'readonly');
-            temp.style.position = 'absolute';
-            temp.style.left = '-9999px';
-            document.body.appendChild(temp);
-            temp.select();
-            try {
-                document.execCommand('copy');
-                setCopiedLabel();
-            } catch (e) {
-                resetLabel();
-            }
-            document.body.removeChild(temp);
+            openConfirmedModal(showBtn);
         });
+
+        if (confirmedModalClose) {
+            confirmedModalClose.addEventListener('click', closeConfirmedModal);
+        }
+        if (confirmedModal) {
+            confirmedModal.addEventListener('click', function (event) {
+                if (event.target === confirmedModal) {
+                    closeConfirmedModal();
+                }
+            });
+        }
 
         function formatRelativeStart(startTs, nowTs) {
             var diffSeconds = startTs - nowTs;
