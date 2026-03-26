@@ -70,6 +70,7 @@ First click: open your booking page after a successful paid booking.
 3. Click `Refresh Now` for an instant panel refresh.
 4. Check `Last refreshed` time beside refresh controls.
 5. `Refresh Now` also refreshes the available schedule cards on the right side.
+6. While refresh is running, button shows a spinner and `Refreshing...`.
 2. Confirm your booked card appears with status badge.
 3. Confirm `Today` cards are pinned first.
 4. Confirm section titles show:

@@ -606,6 +606,7 @@
         if (confirmedRefreshBtn) {
             confirmedRefreshBtn.addEventListener('click', function () {
                 confirmedRefreshBtn.disabled = true;
+                confirmedRefreshBtn.classList.add('is-loading');
                 confirmedRefreshBtn.textContent = 'Refreshing...';
                 var currentPage = getCurrentSlotsPage();
                 var month = monthFilter ? monthFilter.value : '';
@@ -614,6 +615,7 @@
                     refreshConfirmedTodayState();
                     updateConfirmedRefreshedTime();
                     confirmedRefreshBtn.disabled = false;
+                    confirmedRefreshBtn.classList.remove('is-loading');
                     confirmedRefreshBtn.textContent = 'Refresh Now';
                 });
             });
